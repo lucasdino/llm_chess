@@ -1,0 +1,39 @@
+# Docker setup files (Lucas will just do)
+setup_docker.ps1
+Dockerfile
+
+# Other scripts used locally
+build_dataset.ps1
+build_verl_dataset.ps1
+
+# local dirs to ignore
+archive/
+local_testing/
+llm_chess/data/model_outputs/
+llm_chess/data/programmatic_explanations/data/
+
+# Various runscripts to ignore
+runscripts/eval/
+runscripts/eval_sft/
+runscripts/eval_verl/
+runscripts/rejsampling/
+runscripts/sft/
+runscripts/verl/
+
+# Jupyter notebook specific files
+.virtual_documents/
+.ipynb_checkpoints/
+__pycache__/
+
+# Chess Engine Files
+llm_chess/data/programmatic_explanations/stockfish/
+
+# Big data files we'll keep local (for processing / etc.)
+llm_chess/data/raw/magpie_data/
+llm_chess/data/raw/processed_data/
+llm_chess/data/raw/rej_sampling_outputs/
+llm_chess/data/raw/model_outputs/
+llm_chess/data/cleaned/model_responses/
+
+# Because of the Mac losers
+.DS_Store

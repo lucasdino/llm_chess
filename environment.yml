@@ -1,0 +1,28 @@
+name: llm_chess
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - pandas
+  - ipykernel
+  - jupyterlab
+  - notebook
+  - pyarrow
+  - pip
+  - pip:
+      - chess==1.11.2
+      - openai==1.74.0
+      - tqdm==4.67.1
+      - pydantic==2.11.3
+      - pydantic-core==2.33.1
+      - typing-inspection==0.4.0
+      - distro==1.9.0
+      - build==1.2.2.post1
+      - pyproject-hooks==1.2.0
+      - webencodings==0.5.1
+      - wandb==0.19.9
+      - torch
+      - transformers
+      - datasets
+      - deepspeed
