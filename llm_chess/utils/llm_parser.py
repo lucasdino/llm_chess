@@ -134,7 +134,7 @@ class LLMParser:
                 # fire-and-forget parsing tasks
                 await asyncio.gather(
                     *(
-                        _stream_parse(d, raw_responses[i], max_retry=self.args['parser_max_reprompt'])
+                        _stream_parse(d, raw_responses[i], max_retry=self.args.parser_max_reprompt)
                         for i, d in enumerate(chunk)
                     )
                 )
