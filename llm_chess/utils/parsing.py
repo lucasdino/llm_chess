@@ -231,21 +231,6 @@ def _coerce_hallucinations(items: str, board: str) -> Dict[str, float | list]:
         raise ParseException("\n".join(parts))
 
     # ------ Otherwise return our stats / hallucinations ------
-    
-    # Can delete this when done testing
-    def acc(hit: int, tot: int) -> float | None:
-        return None if tot == 0 else hit / tot
-
-    total_tot, total_hit = piece_tot + move_tot, piece_hit + move_hit
-    res =  {
-        "Piece Accuracy": acc(piece_hit, piece_tot),
-        "Move Accuracy":  acc(move_hit, move_tot),
-        "Total Accuracy": acc(total_hit, total_tot),
-        "Hallucinations Encountered": hallucinations,
-    }
-    print(res)
-    # ^^^^ Can delete this when done testing
-
     return {
         "Count: Moves Checked":  move_tot,
         "Count: Moves Correct":  move_hit,
