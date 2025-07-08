@@ -196,21 +196,28 @@ class ParserResultsDict():
     def get_final_dict(self):
         """ Return finalized dict and log to wandb. """
         if self.task_type == "hallucination":
-            hallucination_percent = self._safe_div(self.results['Count: Hallucinations'],  self.results['Total Moves'])
-            average_moves_per_response = self._safe_div(self.results['Total Moves'], self.results['Total Responses Parsed'])
-            parsing_moves_error_rate = self._safe_div(self.results['Error: Parsing Move'], self.results['Total Moves']) 
+            total_moves = self.results['Count: Moves Checked'] + self.results['Count: Pieces Checked']
+            average_moves_per_response = self._safe_div(total_moves, self.results['Total Responses Parsed'])
+            moves_accuracy = self._safe_div(self.results['Count: Moves Correct'], self.results['Count: Moves Checked'])
+            pieces_accuracy = self._safe_div(self.results['Count: Pieces Correct'], self.results['Count: Pieces Checked'])
+            total_accuracy = self._safe_div(self.results['Count: Moves Correct'] + self.results['Count: Pieces Correct'], total_moves)
+            hallucination_percent = self._safe_div(self.results['Count: Hallucinations'],  total_moves)
             percent_reprompts = self._safe_div(self.results['Error: Reprompt'], self.results['Total Moves'])
 
+            self.results['Moves Accuracy'] = moves_accuracy
+            self.results['Pieces Accuracy'] = pieces_accuracy
+            self.results['Total Accuracy'] = total_accuracy
             self.results['Hallucination Percent'] = hallucination_percent
-            self.results['Ave. Moves Per Response'] = average_moves_per_response
-            self.results['Parsing Moves Error Rate'] = parsing_moves_error_rate
+            self.results['Ave. Moves Parsed Per Response'] = average_moves_per_response
             self.results['Percent Reprompts'] = percent_reprompts
             
             if self.wandb_run:
                 self.wandb_run.log({
+                    f"Hallucination / Moves Accuracy": self.results['Moves Accuracy'],
+                    f"Hallucination / Pieces Accuracy": self.results['Pieces Accuracy'],
+                    f"Hallucination / Total Accuracy": self.results['Total Accuracy'],
                     f"Hallucination / Hallucination Percent": self.results["Hallucination Percent"],
-                    f"Hallucination / Ave. Moves Per Response": self.results["Ave. Moves Per Response"],
-                    f"Hallucination / Parsing Moves Error Rate": self.results["Parsing Moves Error Rate"],
+                    f"Hallucination / Ave. Moves Parsed Per Response": self.results["Ave. Moves Parsed Per Response"],
                     f"Hallucination / Percent Reprompts": self.results["Percent Reprompts"]                
                 })
         
@@ -245,11 +252,12 @@ class ParserResultsDict():
             return {
                 "Filename": self.filename,
                 "Total Responses Parsed": 0,
-                "Total Moves": 0,
-                "Count: Correct Moves": 0,
+                "Count: Moves Checked":  0,
+                "Count: Moves Correct":  0,
+                "Count: Pieces Checked": 0,
+                "Count: Pieces Correct": 0,
                 "Count: Hallucinations": 0,
                 "Error: Reprompt": 0,
-                "Error: Parsing Move": 0,
                 "Error: Other": 0
             }
         elif self.task_type == "reasoning_strategy":

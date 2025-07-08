@@ -58,6 +58,9 @@ def parse_args():
     parser.add_argument("--top_k", type=int, default=40)
     parser.add_argument("--repetition_penalty", type=float, default=1.1)
 
+    # Other hyperparams
+    parser.add_argument("--parser_max_reprompt", type=int, default=1)
+
     return parser.parse_args()
 
 

@@ -15,7 +15,6 @@ class LLMParser:
         self.args          = args
         self.runtype       = args.run_type
         self.wandb_run     = None
-        self.max_retry     = 1
         self.sys_prompt    = runtype_mapping[self.runtype]
         self.dataclasses   = [
             JSONFolderDataClass(args.data_dir, f, args.model_version, self.sys_prompt)
@@ -135,7 +134,7 @@ class LLMParser:
                 # fire-and-forget parsing tasks
                 await asyncio.gather(
                     *(
-                        _stream_parse(d, raw_responses[i], max_retry=self.max_retry)
+                        _stream_parse(d, raw_responses[i], max_retry=self.args['parser_max_reprompt'])
                         for i, d in enumerate(chunk)
                     )
                 )
