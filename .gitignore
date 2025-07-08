@@ -1,4 +1,5 @@
 # Docker setup files (Lucas will just do)
+.dockerignore
 setup_docker.ps1
 Dockerfile
 
