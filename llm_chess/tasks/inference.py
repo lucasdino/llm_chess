@@ -112,7 +112,7 @@ def main():
             runtype_mapping = RUNTYPE_SYSPROMPT_MAPPING
         )
         print(f"Starting {args.run_type}...")
-        results = llm_parser.evaluate(client, verbose=True, save_verbose=args.save_verbose)
+        results = llm_parser.evaluate(client, verbose=False, save_verbose=args.save_verbose)
         print(f"Completed {args.run_type}.\n\nFinal Results:\n{results}")
 
     # Save to s3 bucket
