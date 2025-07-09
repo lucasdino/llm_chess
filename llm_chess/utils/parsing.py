@@ -172,9 +172,7 @@ def _coerce_hallucinations(items: str, board: str) -> Dict[str, float | list]:
     piece_tot = move_tot = piece_hit = move_hit = 0
     hallucinations: list = []
 
-    err_type: list[str] = []   # unsupported element types
     err_parse: list[str] = []  # tuples / moves that fail validation
-
     # ------ Actual parsing ------
     for el in data:
         # -------- (square, colour piece) -----------------------------------
@@ -221,14 +219,12 @@ def _coerce_hallucinations(items: str, board: str) -> Dict[str, float | list]:
                 hallucinations.append(el)
 
     # ------ Reprompt if any errors ------
-    if err_type or err_parse:
+    if err_parse:
         parts = []
-        if err_type:
-            parts.append("Unsupported element(s): " + ", ".join(err_type))
         if err_parse:
-            parts.append("Parse / validation errors:\n  • " + "\n  • ".join(err_parse))
+            parts.append("Parsing errors you need to fix: " + "; ".join(err_parse))
         print(f"REPROMPT ERROR: {parts}")
-        raise ParseException("\n".join(parts))
+        raise ParseException("".join(parts))
 
     # ------ Otherwise return our stats / hallucinations ------
     return {
