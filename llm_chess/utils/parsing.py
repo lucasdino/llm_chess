@@ -223,7 +223,7 @@ def _coerce_hallucinations(items: str, board: str) -> Dict[str, float | list]:
         parts = []
         if err_parse:
             parts.append("Parsing errors you need to fix: " + "; ".join(err_parse))
-        print(f"REPROMPT ERROR: {parts}")
+        # print(f"REPROMPT ERROR: {parts}")
         raise ParseException("".join(parts))
 
     # ------ Otherwise return our stats / hallucinations ------

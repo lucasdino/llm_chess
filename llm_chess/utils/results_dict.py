@@ -202,7 +202,7 @@ class ParserResultsDict():
             pieces_accuracy = self._safe_div(self.results['Count: Pieces Correct'], self.results['Count: Pieces Checked'])
             total_accuracy = self._safe_div(self.results['Count: Moves Correct'] + self.results['Count: Pieces Correct'], total_moves)
             hallucination_percent = self._safe_div(self.results['Count: Hallucinations'],  total_moves)
-            percent_reprompts = self._safe_div(self.results['Error: Reprompt'], self.results['Total Moves'])
+            percent_reprompts = self._safe_div(self.results['Error: Reprompt'], total_moves)
 
             self.results['Moves Accuracy'] = moves_accuracy
             self.results['Pieces Accuracy'] = pieces_accuracy
