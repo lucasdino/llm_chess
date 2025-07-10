@@ -6,6 +6,8 @@ You must return a list of elements within answer tags as your final output. The 
 1) A 'Move': This should just be a string in UCI notation (e.g., e4e5) that is a move stated by the model. This must be only a string and must be in UCI notation -- SAN will be rejected.
 2) A 'Piece': This should be a tuple of (str, str). The first element must be a single board square (e.g., e4). The second element must be as 'color piece' (e.g., 'black knight').
 
+If the model produces a visualized version of a board, do not include these pieces as it is copying from the initial prompt it was given. Only copy pieces that are mentioned separately within its reasoning.
+
 You will be provided a full model response and you must return within answer tags (e.g., <answer> final_list </answer>) the Python list that follows the above format requirements. Note that we will be calling ast.literal_eval on the elements within answer tags so your output must allow for this.
 
 You should first think deeply by talking through all moves you think are mentioned and format thinking within think tags (e.g., <think> your_reasoning </think>).
