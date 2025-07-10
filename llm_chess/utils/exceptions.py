@@ -5,3 +5,7 @@ class ParseException(Exception):
 class IllegalMoveException(Exception):
     """ Exception raised when a move is invalid. """
     pass
+
+class VLLMGenerationException(Exception):
+    """ Exception raised when you get a failure from a VLLM generation. """
+    pass

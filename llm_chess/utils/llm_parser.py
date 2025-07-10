@@ -4,7 +4,7 @@ from typing import List, Any
 from .results_dict import ParserResultsDict
 from .dataclass      import JSONFolderDataClass
 from .parsing        import coerce_response
-from .exceptions     import ParseException
+from .exceptions     import ParseException, VLLMGenerationException
 
 
 class LLMParser:
@@ -79,6 +79,11 @@ class LLMParser:
             # ----------------------------------------
             async def _stream_parse(datum, raw_resp, max_retry=1):
                 """Parse a single datum, reprompting on ParseException."""
+                if isinstance(raw_resp, VLLMGenerationException):
+                    async with lock:
+                        rd.results["Error: Other"] += 1
+                    return
+                
                 prompt_txt = datum["prompt"]
                 info       = datum["info"]
                 attempts   = 0
