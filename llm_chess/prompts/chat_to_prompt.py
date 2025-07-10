@@ -28,6 +28,13 @@ QWEN_25_SPECIAL_TOKENS = {
     "end_of_turn": ""
 }
 
+# See https://huggingface.co/microsoft/Phi-4-reasoning?chat_template=default&format=true for details
+PHI_4_SPECIAL_TOKENS = {
+    "start_header": "<|im_start|>",
+    "end_header": "<|im_sep|>",
+    "end_of_turn": "<|im_end|>"
+}
+
 
 
 
@@ -86,6 +93,8 @@ class ChatProcessor():
             self.special_tokens = QWEN_3_SPECIAL_TOKENS
         elif model_version == "qwen25":
             self.special_tokens = QWEN_25_SPECIAL_TOKENS
+        elif model_version == "phi4":
+            self.special_tokens = PHI_4_SPECIAL_TOKENS
         elif model_version is None:
             self.special_tokens = None
         else:
