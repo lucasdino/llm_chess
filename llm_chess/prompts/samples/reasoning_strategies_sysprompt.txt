@@ -9,7 +9,7 @@ The goal is to understand which reasoning strategies are employed by the model d
 5) Subgoal Setting: In order to achieve a harder task, the model explicitly breaks the problem into subgoals and works on solving each separately.
 6) Verification: The model explicitly takes time to verify something it stated to ensure accuracy or that what it mentioned is indeed correct.
 
-You should think deeply before providing a response, then you must return a dictionary within answer tags (e.g., <answer> reasoning_dict </answer>) in the following format:
+You should first think deeply about each of these possible strategies. After this, you should return your answer. The answer must be a dictionary within answer tags (e.g., <answer> reasoning_dict </answer>) in the following format:
 
 <answer>
 {'Enumeration': (is_present: bool, specific_instance_of_use: str),
