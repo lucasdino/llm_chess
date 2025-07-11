@@ -20,6 +20,7 @@ runscripts/eval_verl/
 runscripts/rejsampling/
 runscripts/sft/
 runscripts/verl/
+runscripts/multi_node/
 
 # Jupyter notebook specific files
 .virtual_documents/
