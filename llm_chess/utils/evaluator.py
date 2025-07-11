@@ -58,7 +58,7 @@ class Evaluator():
                     prompt_info = data_batch[idx]['info']
                     ground_truth = data_batch[idx]['info']['answer']
 
-                    results.add_result(prompt, response, ground_truth, prompt_info)
+                    results.add_result(prompt, response, prompt_info)
 
                     # Optionally log responses to console for visibility                    
                     if verbose:

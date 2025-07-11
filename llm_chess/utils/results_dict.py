@@ -11,9 +11,10 @@ class ResultsDict():
         self.results = self._instantiate_dict()
         self.correct_responses = []
 
-    def add_result(self, prompt, model_response, ground_truth, info=None):
+    def add_result(self, prompt, model_response, info):
         try:
             self.results["Total Samples"] += 1
+            ground_truth = info['answer']
             if self.task_type == "choose_from_n":
                 answer = ground_truth['answer']
                 candidates = ground_truth['candidates']
@@ -24,8 +25,7 @@ class ResultsDict():
                     self.results["Correct"] += 1
                     self.correct_responses.append({
                         "prompt": prompt,
-                        "completion": model_response,
-                        "ground_truth": ground_truth,
+                        "model_response": model_response,
                         "info": info
                     })
                 else:
@@ -54,8 +54,7 @@ class ResultsDict():
                 if already_guessed == set(answer) and len(predicted_answer) == len(answer):
                     self.correct_responses.append({
                         "prompt": prompt,
-                        "completion": model_response,
-                        "ground_truth": ground_truth,
+                        "model_response": model_response,
                         "info": info
                     })
                 
@@ -74,8 +73,7 @@ class ResultsDict():
                     if predicted_move_idx/len(sorted_answers) > 0.7:
                         self.correct_responses.append({
                             "prompt": prompt,
-                            "completion": model_response,
-                            "ground_truth": ground_truth,
+                            "model_response": model_response,
                             "info": info
                         })
                 else:
