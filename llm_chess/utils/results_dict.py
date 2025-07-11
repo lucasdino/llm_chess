@@ -11,7 +11,7 @@ class ResultsDict():
         self.results = self._instantiate_dict()
         self.correct_responses = []
 
-    def add_result(self, prompt, model_response, ground_truth):
+    def add_result(self, prompt, model_response, ground_truth, info=None):
         try:
             self.results["Total Samples"] += 1
             if self.task_type == "choose_from_n":
@@ -25,7 +25,8 @@ class ResultsDict():
                     self.correct_responses.append({
                         "prompt": prompt,
                         "completion": model_response,
-                        "ground_truth": ground_truth
+                        "ground_truth": ground_truth,
+                        "info": info
                     })
                 else:
                     if predicted_answer in candidates:
@@ -54,7 +55,8 @@ class ResultsDict():
                     self.correct_responses.append({
                         "prompt": prompt,
                         "completion": model_response,
-                        "ground_truth": ground_truth
+                        "ground_truth": ground_truth,
+                        "info": info
                     })
                 
             elif self.task_type == 'predict_singlemove':
@@ -73,7 +75,8 @@ class ResultsDict():
                         self.correct_responses.append({
                             "prompt": prompt,
                             "completion": model_response,
-                            "ground_truth": ground_truth
+                            "ground_truth": ground_truth,
+                            "info": info
                         })
                 else:
                     raise IllegalMoveException("Predicted move is not in the legal moves.")
