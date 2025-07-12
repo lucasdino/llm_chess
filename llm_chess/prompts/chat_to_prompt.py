@@ -35,6 +35,12 @@ PHI_4_SPECIAL_TOKENS = {
     "end_of_turn": "<|im_end|>"
 }
 
+# See https://huggingface.co/deepseek-ai/DeepSeek-R1-0528?chat_template=default&format=true for details
+R1_SPECIAL_TOKENS = {
+    "start_header": "<|",
+    "end_header": "|>",
+    "end_of_turn": ""
+}
 
 
 
@@ -101,4 +107,8 @@ class ChatProcessor():
             raise("model_version must be either 'llama3', 'llama4', or 'qwen3'.")
 
     def _add_header(self, role):
+        # Need to handle special case for R1
+        if self.model_version == "r1":
+            return self.special_tokens['start_header'] + role.title() + self.special_tokens['end_header']
+        
         return self.special_tokens['start_header'] + role + self.special_tokens['end_header']
