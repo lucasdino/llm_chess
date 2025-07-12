@@ -42,6 +42,12 @@ R1_SPECIAL_TOKENS = {
     "end_of_turn": ""
 }
 
+K2_SPECIAL_TOKENS = {
+    "start_header": "<|im_{role}|>",
+    "end_header": "<|im_middle|>",
+    "end_of_turn": "<|im_end|>"
+}
+
 
 
 class ChatProcessor():
@@ -103,14 +109,18 @@ class ChatProcessor():
             self.special_tokens = PHI_4_SPECIAL_TOKENS
         elif model_version == "r1":
             self.special_tokens = R1_SPECIAL_TOKENS
+        elif model_version == "kimi_k2":
+            self.special_tokens = K2_SPECIAL_TOKENS
         elif model_version is None:
             self.special_tokens = None
         else:
-            raise("model_version must be either 'llama3', 'llama4', or 'qwen3'.")
+            raise(f"model_version {model_version} is undefined.")
 
     def _add_header(self, role):
         # Need to handle special case for R1
         if self.model_version == "r1":
             return self.special_tokens['start_header'] + role.title() + self.special_tokens['end_header']
-        
+        elif self.model_version == "kimi_k2":
+            return self.special_tokens['start_header'].format(role=role) + role + self.special_tokens['end_header']
+
         return self.special_tokens['start_header'] + role + self.special_tokens['end_header']
