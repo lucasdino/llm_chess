@@ -101,6 +101,8 @@ class ChatProcessor():
             self.special_tokens = QWEN_25_SPECIAL_TOKENS
         elif model_version == "phi4":
             self.special_tokens = PHI_4_SPECIAL_TOKENS
+        elif model_version == "r1":
+            self.special_tokens = R1_SPECIAL_TOKENS
         elif model_version is None:
             self.special_tokens = None
         else:
