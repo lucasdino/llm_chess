@@ -92,7 +92,7 @@ def main():
             task_map = TASK_MAP
         )
         print(f"Starting {args.run_type}...")
-        results = evaluator.evaluate(client, verbose=False, save_verbose=args.save_verbose)
+        results = evaluator.evaluate(client, verbose=True, save_verbose=args.save_verbose)
         print(f"Completed {args.run_type}.\n\nFinal Results:\n{results}")
     
     # For cases where we just want to generate data
