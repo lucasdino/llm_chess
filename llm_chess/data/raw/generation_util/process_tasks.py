@@ -5,7 +5,7 @@ import random
 import numpy as np
 import pandas as pd
 
-from llm_chess.data.raw.board import convert_board, get_piece_name_at_location
+from llm_chess.data.raw.utils.board import convert_board, get_piece_name_at_location
 from llm_chess.prompts.chat_to_prompt import ChatProcessor
 
 from .exceptions import DiscardedSample
