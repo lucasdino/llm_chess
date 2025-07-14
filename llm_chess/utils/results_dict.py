@@ -70,7 +70,8 @@ class ResultsDict():
                     self.results["Cumulative Rank of Moves Provided"] += predicted_move_idx/len(sorted_answers)
 
                     # Only keep if > 0.7 (w/in top 30% of moves)
-                    if predicted_move_idx/len(sorted_answers) > 0.7:
+                    # if predicted_move_idx/len(sorted_answers) > 0.7:
+                    if predicted_move_idx/len(sorted_answers) >= 0.0:
                         self.correct_responses.append({
                             "prompt": prompt,
                             "model_response": model_response,
