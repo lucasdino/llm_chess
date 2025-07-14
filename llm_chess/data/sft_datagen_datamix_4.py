@@ -25,8 +25,8 @@ DATASET_CONFIG = [
         "weight": 0.6
     },
     {
-        "name": "chess_explainer",
-        "files": ["combined_chessexplainer_5k.jsonl"],
+        "name": "rejsampling",
+        "files": ["rejsampling_clean_1630.jsonl", "rejsampling_clean_1988.jsonl", "rejsampling_clean_3269.jsonl"],
         "weight": 0.2
     },
 ]
