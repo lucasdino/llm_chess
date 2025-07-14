@@ -23,6 +23,7 @@ runscripts/verl/
 runscripts/multi_node/
 runscripts/reasoning_strats/
 runscripts/hallucinations/
+runscripts/generate
 
 # Jupyter notebook specific files
 .virtual_documents/
