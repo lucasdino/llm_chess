@@ -5,12 +5,15 @@ set -x
 export CUDA_DEVICE_MAX_CONNECTIONS=1 # For megatron communication/computation overlapping
 
 predictmove_train=data/cleaned/verl_tasks/train/predictmove.parquet
+bestmove_train=data/cleaned/verl_tasks/train/bestmove.parquet
+worstmove_train=data/cleaned/verl_tasks/train/worstmove.parquet
+legalmoves_train=data/cleaned/verl_tasks/train/legalmoves.parquet
 predictmove_eval=data/cleaned/verl_tasks/eval/predictmove.parquet
 bestmove_eval=data/cleaned/verl_tasks/eval/bestmove.parquet
 worstmove_eval=data/cleaned/verl_tasks/eval/worstmove.parquet
 legalmoves_eval=data/cleaned/verl_tasks/eval/legalmoves.parquet
 
-train_files="['$predictmove_train']"
+train_files="['$predictmove_train', '$bestmove_train', '$worstmove_train', '$legalmoves_train']"
 test_files="['$predictmove_eval', '$bestmove_eval', '$worstmove_eval', '$legalmoves_eval']"
 
 
@@ -48,7 +51,7 @@ python3 -m verl.trainer.main_ppo --config-path=config \
     trainer.default_local_dir=models/checkpoints \
     trainer.logger=['wandb'] \
     trainer.project_name='llm-chess-verl' \
-    trainer.experiment_name='verl-qwen25-7b-grpo-datamix-4' \
+    trainer.experiment_name='verl-qwen25-7b-grpo-datamix-5' \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
     trainer.save_freq=-1 \

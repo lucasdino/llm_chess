@@ -4,13 +4,13 @@ from llm_chess.data.raw.generation_util.process_tasks import process_tasks
 # Hyperparams
 # =================================
 CUR_DIR = "llm_chess/data"
-MODEL_VERSION = "llama3"
+MODEL_VERSION = "qwen25"
 OUTPUT_FOLDER = f"{CUR_DIR}/cleaned/verl_tasks"
 TASKS = [
-    {"type": "predictmove", "split": "train", "samples": 2048, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
-    {"type": "bestmove", "split": "train", "samples": 2048, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
-    {"type": "worstmove", "split": "train", "samples": 2048, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
-    {"type": "legalmoves", "split": "train", "samples": 2048, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
+    {"type": "predictmove", "split": "train", "samples": 4096, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
+    {"type": "bestmove", "split": "train", "samples": 4096, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
+    {"type": "worstmove", "split": "train", "samples": 4096, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
+    {"type": "legalmoves", "split": "train", "samples": 4096, "data_source": f'{CUR_DIR}/raw/deepmind_data/train_20k.csv'},
     {"type": "predictmove", "split": "eval", "samples": 64, "data_source": f'{CUR_DIR}/raw/deepmind_data/evals_1k.csv'},
     {"type": "bestmove", "split": "eval", "samples": 64, "data_source": f'{CUR_DIR}/raw/deepmind_data/evals_1k.csv'},
     {"type": "worstmove", "split": "eval", "samples": 64, "data_source": f'{CUR_DIR}/raw/deepmind_data/evals_1k.csv'},
