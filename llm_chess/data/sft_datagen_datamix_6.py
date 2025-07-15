@@ -26,7 +26,7 @@ DATASET_CONFIG = [
     },
     {
         "name": "rejsampling-predictmove",
-        "files": ["rejsampling-predictmove-0_7_cutoff-2625.jsonl", "rejsampling-predictmove-0_7_cutoff-1137.jsonl, rejsampling-predictmove-kimi_correct-179.jsonl"],
+        "files": ["rejsampling-predictmove-0_7_cutoff-2625.jsonl", "rejsampling-predictmove-0_7_cutoff-1137.jsonl", "rejsampling-predictmove-kimi_correct-179.jsonl"],
         "weight": 0.3
     },
     {
