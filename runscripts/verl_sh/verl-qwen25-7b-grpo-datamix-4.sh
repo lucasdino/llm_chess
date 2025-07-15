@@ -5,9 +5,6 @@ set -x
 export CUDA_DEVICE_MAX_CONNECTIONS=1 # For megatron communication/computation overlapping
 
 predictmove_train=data/cleaned/verl_tasks/train/predictmove.parquet
-bestmove_train=data/cleaned/verl_tasks/train/bestmove.parquet
-worstmove_train=data/cleaned/verl_tasks/train/worstmove.parquet
-legalmoves_train=data/cleaned/verl_tasks/train/legalmoves.parquet
 predictmove_eval=data/cleaned/verl_tasks/eval/predictmove.parquet
 bestmove_eval=data/cleaned/verl_tasks/eval/bestmove.parquet
 worstmove_eval=data/cleaned/verl_tasks/eval/worstmove.parquet
