@@ -10,7 +10,7 @@ bestmove_eval=data/cleaned/verl_tasks/eval/bestmove.parquet
 worstmove_eval=data/cleaned/verl_tasks/eval/worstmove.parquet
 legalmoves_eval=data/cleaned/verl_tasks/eval/legalmoves.parquet
 
-train_files="['$predictmove_train', '$bestmove_train', '$worstmove_train', '$legalmoves_train']"
+train_files="['$predictmove_train']"
 test_files="['$predictmove_eval', '$bestmove_eval', '$worstmove_eval', '$legalmoves_eval']"
 
 
