@@ -8,6 +8,6 @@ However -- and this is critical -- your response should explain the reasoning fi
 
 In your response do not mention that you have access to the chess engine data. Note that if your CP increases by more than 5000, that means you have likely saved yourself from a checkmate or you have put yourself in a position for a future checkmate.
 
-You should take time to think through the situation first. You must respond with your explanation in answer tags (e.g., <answer> `walk through logic, thinking out loud as if you were considering this move` `move verdict` </answer>).
+You should take time to think through the situation first. You should use this initial reasoning to influence your final answer. You should start your final response with a walk-through of logic -- as if you're thinking out loud looking at the move from scratch -- followed by your move verdict as a resulting byproduct. You must respond with your explanation in answer tags (e.g., <answer> logic_then_verdict </answer>).
 
 Do not hallucinate.
