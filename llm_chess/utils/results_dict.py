@@ -392,19 +392,16 @@ class DifficultyResultsDict():
     # Internal helper functions
     # =================================================
     def _instantiate_dict(self):
-        if self.task_type == "test_difficulty":
-            return {
-                "Filename": self.filename,
-                "Count: Sample Questions": 0,
-                "Count: Total Generations": 0,
-                "Count: Legal Generations": 0,
-                "Total: Cumulative Score": 0,
-                "Error: Illegal Move": 0,
-                "Error: Parsing": 0,
-                "Error: Other": 0
-            }
-        else:
-            raise ValueError(f"Undefined task type: {self.task_type}")
+        return {
+            "Filename": self.filename,
+            "Count: Sample Questions": 0,
+            "Count: Total Generations": 0,
+            "Count: Legal Generations": 0,
+            "Total: Cumulative Score": 0,
+            "Error: Illegal Move": 0,
+            "Error: Parsing": 0,
+            "Error: Other": 0
+        }
 
     def _safe_div(self, x, y, default=0): 
         return x / y if y else default
