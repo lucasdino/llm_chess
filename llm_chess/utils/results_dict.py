@@ -281,3 +281,132 @@ class ParserResultsDict():
     def _safe_div(self, x, y, default=0): 
         return x / y if y else default
     
+
+
+# =============================================
+# Results Dict for Difficulty Parsing Cases
+# =============================================
+class DifficultyResultsDict():
+    def __init__(self, task_type, filename, wandb_run):
+        self.task_type = task_type
+        self.filename = filename
+        self.trimmed_filename = filename.split("_", 1)[0]
+        self.wandb_run = wandb_run
+        self.board_id_results = dict()
+        self.results = self._instantiate_dict()
+
+    def add_result(self, model_response, info):
+        # First store metadata to track unique boards we encounter
+        if info['board_id'] not in self.board_id_results:
+            self.results['Count: Sample Questions'] += 1
+            self.board_id_results[info['board_id']] = {
+                'score_answers': [],
+                'info': info
+            }
+
+        # Then need to get our answer / scores
+        score = '<ERROR>'
+        predicted_answer = '<ERROR>'
+        try:
+            self.results["Count: Total Generations"] += 1
+            ground_truth = info['answer']
+
+            if self.task_type == "choose_from_n":
+                answer = ground_truth['answer']
+                candidates = ground_truth['candidates']
+                predicted_answer = coerce_response(extract_solution(model_response), self.task_type)
+
+                if predicted_answer == answer:
+                    score = 1
+                else:
+                    if predicted_answer in candidates:
+                        score = 0
+                    else:
+                        raise IllegalMoveException("Predicted move is not in the provided moves.")
+                self.results["Count: Legal Generations"] += 1
+                self.results["Total: Cumulative Score"] += score
+            
+            elif self.task_type == 'produce_list':
+                answer = ground_truth
+                predicted_answer = coerce_response(extract_solution(model_response), self.task_type)
+
+                # Compute correctness
+                num_right = 0
+                already_guessed = set()
+                for move in predicted_answer:
+                    if move in answer and move not in already_guessed:
+                        already_guessed.add(move)
+                        num_right += 1
+                score = num_right / (len(answer) + len(predicted_answer) - num_right)
+                self.results["Count: Legal Generations"] += 1
+                self.results["Total: Cumulative Score"] += score
+                
+            elif self.task_type == 'predict_singlemove':
+                answer = ground_truth
+                predicted_answer = coerce_response(extract_solution(model_response), self.task_type)
+                sorted_answers = sorted(answer.items(), key=lambda x: x[1])
+
+                if predicted_answer in sorted_answers:
+                    predicted_move_idx = next(i for i, (move, _) in enumerate(sorted_answers) if move == predicted_answer)
+                    score = predicted_move_idx/len(sorted_answers)
+                else:
+                    raise IllegalMoveException("Predicted move is not in the legal moves.")
+                self.results["Count: Legal Generations"] += 1
+                self.results["Total: Cumulative Score"] += score
+                
+        # Exception handling to log various errors     
+        except Exception as e:
+            if isinstance(e, ParseException):
+                self.results["Error: Parsing"] += 1
+            elif isinstance(e, IllegalMoveException):
+                self.results["Error: Illegal Move"] += 1
+            else:
+                self.results["Error: Other"] += 1
+        
+        # If we make it through without an error raised, can append
+        self.board_id_results[info['board_id']]['score_answers'].append((score, predicted_answer))
+    
+
+    def get_final_dict(self):
+        """ Return finalized dict and log to wandb. """
+        if self.task_type == "test_difficulty":
+            average_score_all = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Total Generations'])
+            average_score_legal = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Legal Generations'])
+            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Parsing'] + self.results['Error: Other'] 
+            error_rate = self._safe_div(total_errors, self.results['Count: Total Generations'])
+
+            self.results['Avg. Score - All'] = average_score_all
+            self.results['Avg. Score - Legal'] = average_score_legal
+            self.results['Error Rate'] = error_rate
+            
+            if self.wandb_run:
+                self.wandb_run.log({
+                    f"Test Difficulty / Avg. Score - All": self.results['Avg. Score - All'],
+                    f"Test Difficulty / Avg. Score - Legal": self.results['Avg. Score - Legal'],          
+                    f"Test Difficulty / Error Rate": self.results['Error Rate']                
+                })
+
+        return self.results
+
+
+    # =================================================
+    # Internal helper functions
+    # =================================================
+    def _instantiate_dict(self):
+        if self.task_type == "test_difficulty":
+            return {
+                "Filename": self.filename,
+                "Count: Sample Questions": 0,
+                "Count: Total Generations": 0,
+                "Count: Legal Generations": 0,
+                "Total: Cumulative Score": 0,
+                "Error: Illegal Move": 0,
+                "Error: Parsing": 0,
+                "Error: Other": 0
+            }
+        else:
+            raise ValueError(f"Undefined task type: {self.task_type}")
+
+    def _safe_div(self, x, y, default=0): 
+        return x / y if y else default
+    

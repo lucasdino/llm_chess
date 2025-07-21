@@ -45,14 +45,14 @@ class LLMParser:
 
     # --------------------------------------------------------------------- #
     # Public sync wrapper
-    def evaluate(self, model, *, verbose: bool = False, save_verbose: bool = True):
+    def evaluate(self, model):
         return asyncio.run(
-            self._evaluate_async(model, verbose=verbose, save_verbose=save_verbose)
+            self._evaluate_async(model)
         )
 
     # --------------------------------------------------------------------- #
     # Core async evaluation
-    async def _evaluate_async(self, model, *, verbose: bool, save_verbose: bool):
+    async def _evaluate_async(self, model):
         results_all: List[dict[str, Any]] = []
         for dc in self.dataclasses:
             print(f"{'='*60}\n Evaluating {dc.trimmed_foldername}\n{'='*60}")
@@ -93,7 +93,7 @@ class LLMParser:
                         parsed = coerce_response(cur_raw, self.runtype, info=info)
                         async with lock:
                             rd.add_result(parsed)
-                            if save_verbose:
+                            if self.args.save_verbose:
                                 verbose_store.append(
                                     {
                                         "prompt": prompt_txt,
@@ -102,7 +102,7 @@ class LLMParser:
                                         "info": info,
                                     }
                                 )
-                        if verbose:  # avoid big lock for prints
+                        if self.args.verbose:  # avoid big lock for prints
                             print(f"{'-'*12}\nPrompt:\n{prompt_txt}\n\n"
                                   f"Raw:\n{cur_raw}\n\nParsed:\n{parsed}\n")
                         return  # success
@@ -152,7 +152,7 @@ class LLMParser:
                 print(f"{k}: {v}")
             print(f"{'-'*48}\n")
 
-            if save_verbose:
+            if self.args.save_verbose:
                 path = os.path.join(
                     dc.data_dir,
                     "saved_data",

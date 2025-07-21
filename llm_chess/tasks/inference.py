@@ -44,11 +44,14 @@ def parse_args():
     parser.add_argument("--run_type", type=str, default='eval', help="Specify which task you're doing (e.g., 'eval', 'rejsampling', 'hallucination', 'reasoning_strategy').")
     parser.add_argument("--batch_size", type=int, default=4, help="Number of samples to pass into vLLM in each batch.")
     parser.add_argument("--max_samples", type=none_or_int, default=None, help="If set to None, use all your data in your --data-files; if set to int, use that as max number of samples to test on.")
+    parser.add_argument("--num_generations", type=int, default=1, help="Choose number of generations for each sample.")
+    
     
     # Logging / saving details
     parser.add_argument("--use_wandb", default=False, action="store_true", help="Use wandb for logging")
     parser.add_argument("--print_verbose", default=False, action="store_true", help="Print all outputs.")
     parser.add_argument("--save_verbose", default=False, action="store_true", help="Save all outputs.")
+    parser.add_argument("--verbose", default=False, action="store_true", help="Print all outputs.")
 
     # Inference hyperparams
     parser.add_argument("--max_tokens", type=int, default=2048)
@@ -92,28 +95,37 @@ def main():
             task_map = TASK_MAP
         )
         print(f"Starting {args.run_type}...")
-        results = evaluator.evaluate(client, verbose=True, save_verbose=args.save_verbose)
+        results = evaluator.evaluate(client)
         print(f"Completed {args.run_type}.\n\nFinal Results:\n{results}")
-    
+    # For our 'generate_n' samples per input cases
+    elif args.run_type in ['test_difficulty']:
+        n_evaluator = utils.N_Evaluator(
+            args=args,
+            task_map=TASK_MAP
+        )
+        print(f"Starting {args.run_type}...")
+        results = n_evaluator.evaluate(client)
+        print(f"Completed {args.run_type}.")
     # For cases where we just want to generate data
-    if args.run_type in ["generate"]:
+    elif args.run_type in ["generate"]:
         generator = utils.Generator(
             args = args,
             task_map = TASK_MAP
         )
         print(f"Starting {args.run_type}...")
-        generator.generate(client, verbose=False, save_verbose=args.save_verbose)
+        generator.generate(client)
         print(f"Completed {args.run_type}.")
-
     # For cases where we want the LLM to parse existing responses to extract more nuanced info (e.g., hallucinations, reasoning methods used)
-    if args.run_type in ['hallucination', 'reasoning_strategy']:
+    elif args.run_type in ['hallucination', 'reasoning_strategy']:
         llm_parser = utils.LLMParser(
             args = args,
             runtype_mapping = RUNTYPE_SYSPROMPT_MAPPING
         )
         print(f"Starting {args.run_type}...")
-        results = llm_parser.evaluate(client, verbose=False, save_verbose=args.save_verbose)
+        results = llm_parser.evaluate(client)
         print(f"Completed {args.run_type}.\n\nFinal Results:\n{results}")
+    else:
+        raise(Exception(f"Run Type: {args.run_type} is undefined."))
 
     # Save to s3 bucket
     cmd = f"aws s3 cp {args.data_dir}/saved_data s3://llm-chess/saved_data/{args.experiment_name} --recursive"

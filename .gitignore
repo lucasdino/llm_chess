@@ -24,6 +24,7 @@ runscripts/multi_node/
 runscripts/reasoning_strats/
 runscripts/hallucinations/
 runscripts/generate
+runscripts/test_difficulty
 
 # Jupyter notebook specific files
 .virtual_documents/
