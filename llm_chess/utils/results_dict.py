@@ -369,21 +369,20 @@ class DifficultyResultsDict():
 
     def get_final_dict(self):
         """ Return finalized dict and log to wandb. """
-        if self.task_type == "test_difficulty":
-            average_score_all = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Total Generations'])
-            average_score_legal = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Legal Generations'])
-            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Parsing'] + self.results['Error: Other'] 
-            error_rate = self._safe_div(total_errors, self.results['Count: Total Generations'])
+        average_score_all = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Total Generations'])
+        average_score_legal = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Legal Generations'])
+        total_errors = self.results['Error: Illegal Move'] + self.results['Error: Parsing'] + self.results['Error: Other'] 
+        error_rate = self._safe_div(total_errors, self.results['Count: Total Generations'])
 
-            self.results['Avg. Score - All'] = average_score_all
-            self.results['Avg. Score - Legal'] = average_score_legal
-            self.results['Error Rate'] = error_rate
-            
-            if self.wandb_run:
-                self.wandb_run.log({
-                    f"Test Difficulty / Avg. Score - All": self.results['Avg. Score - All'],
-                    f"Test Difficulty / Avg. Score - Legal": self.results['Avg. Score - Legal'],          
-                    f"Test Difficulty / Error Rate": self.results['Error Rate']                
+        self.results['Avg. Score - All'] = average_score_all
+        self.results['Avg. Score - Legal'] = average_score_legal
+        self.results['Error Rate'] = error_rate
+        
+        if self.wandb_run:
+            self.wandb_run.log({
+                f"Test Difficulty / Avg. Score - All": self.results['Avg. Score - All'],
+                f"Test Difficulty / Avg. Score - Legal": self.results['Avg. Score - Legal'],          
+                f"Test Difficulty / Error Rate": self.results['Error Rate']                
                 })
 
         return self.results
