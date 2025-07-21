@@ -346,7 +346,7 @@ class DifficultyResultsDict():
                 predicted_answer = coerce_response(extract_solution(model_response), self.task_type)
                 sorted_answers = sorted(answer.items(), key=lambda x: x[1])
 
-                if predicted_answer in sorted_answers:
+                if predicted_answer in answer:
                     predicted_move_idx = next(i for i, (move, _) in enumerate(sorted_answers) if move == predicted_answer)
                     score = predicted_move_idx/len(sorted_answers)
                 else:
