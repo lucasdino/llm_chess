@@ -54,8 +54,13 @@ class ResponseEvaluator():
         self._print_final_dict()
 
     def _compute_results(self):
-        with open(os.path.join(self.data_dir, self.filename), "r", encoding="utf-8") as fh:
-            model_responses = json.load(fh)
+        file_path = os.path.join(self.data_dir, self.filename)
+        if self.filename.endswith(".jsonl"):
+            with open(file_path, "r", encoding="utf-8") as fh:
+                model_responses = [json.loads(line) for line in fh]
+        else:
+            with open(file_path, "r", encoding="utf-8") as fh:
+                model_responses = json.load(fh)
 
         for model_response in model_responses:
             info = model_response['info']

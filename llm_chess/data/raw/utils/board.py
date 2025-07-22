@@ -1,4 +1,8 @@
+import re
 import chess
+from typing import List
+
+
 
 def get_piece_name_at_location(fen, location):
     board = chess.Board(fen)
@@ -124,3 +128,82 @@ def _convert_fen_to_visual(fen: str) -> str:
     lines.append(f"- Fullmove number: {fullmove}")
 
     return '\n'.join(lines)
+
+
+
+# =========================================================
+# Inverse / Parsing Functions to extract FEN from visual
+# =========================================================
+def visual_to_fen(visual: str) -> str:
+    """
+    Inverse of `_convert_fen_to_visual`.
+    Accepts the *visual* chunk that starts with “8| …” and ends
+    with “- Fullmove number: X”.
+    Returns a legal FEN string.
+    """
+    lines: List[str] = [ln.rstrip() for ln in visual.splitlines() if ln.strip()]
+
+    # ---- a) Piece placement ----------------------------------------
+    board_rows = [ln for ln in lines if re.match(r"^[1-8]\|", ln)][:8]  # 8,7,…,1
+    fen_ranks = []
+    for row in board_rows:
+        tokens = row.split("|", 1)[1].strip().split()
+        fen_row, empties = "", 0
+        for t in tokens:
+            if t == ".":
+                empties += 1
+            else:
+                if empties:
+                    fen_row += str(empties)
+                    empties = 0
+                fen_row += t
+        if empties:
+            fen_row += str(empties)
+        fen_ranks.append(fen_row)
+    placement = "/".join(fen_ranks)
+
+    # ---- b) Misc. fields -------------------------------------------
+    def find_line(pat: str) -> str:
+        return next(ln for ln in lines if pat in ln)
+
+    active = "w" if "It is White" in find_line("It is") else "b"
+
+    castling_ln = next((ln for ln in lines if ln.startswith("- Castling rights:")), "")
+    if "No castling rights" in castling_ln or not castling_ln:
+        castling = "-"
+    else:
+        castling = (
+            ("K" if "White can castle kingside"  in castling_ln else "") +
+            ("Q" if "White can castle queenside" in castling_ln else "") +
+            ("k" if "Black can castle kingside"  in castling_ln else "") +
+            ("q" if "Black can castle queenside" in castling_ln else "")
+        ) or "-"
+
+    ep_ln = next((ln for ln in lines if ln.lower().lstrip().startswith("- en passant")), "")
+    parts = ep_ln.split(":", 1)
+    if len(parts) == 2 and "target square" in parts[0].lower():
+        ep = parts[1].strip().rstrip(".")
+        en_passant = ep if re.match(r"^[a-h][36]$", ep) else "-"
+    else:
+        en_passant = "-"
+
+    halfmove = find_line("Halfmove clock").split(":")[1].strip()
+    fullmove = find_line("Fullmove number").split(":")[1].strip()
+
+    return f"{placement} {active} {castling} {en_passant} {halfmove} {fullmove}"
+
+
+def extract_visual(text: str) -> str:
+    """
+    Pulls the *visual* board block (board + details) out of an LLM prompt/
+    completion string.
+    """
+    all_lines = text.splitlines()
+    try:
+        start = next(i for i, ln in enumerate(all_lines) if re.match(r"^\s*8\|", ln))
+        end   = next(i for i, ln in enumerate(all_lines[start:], start) 
+                     if ln.lstrip().startswith("- Fullmove number"))
+    except StopIteration:
+        raise ValueError("Visual board block not found.")
+
+    return "\n".join(all_lines[start:end + 1])
