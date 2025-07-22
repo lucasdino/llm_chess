@@ -36,12 +36,12 @@ FULLMOVE_LEGALMOVES_BUCKETS = [     # We will want weighting of moves to follow 
     ((40, 150), 0.1)
 ]
 LEGALMOVES_PIECES = [     # We want these pieces at this ratio for 'legalmoves'
-    ("pawn", 0.0),
-    ("knight", 0.2),
-    ("bishop", 0.2),
-    ("queen", 0.2),
+    ("pawn", 0.1),
+    ("knight", 0.23),
+    ("bishop", 0.12),
+    ("queen", 0.12),
     ("king", 0.2),
-    ("rook", 0.2)
+    ("rook", 0.23)
 ]
 BESTWORST_PIECES = [      # We want these pieces at this ratio for 'bestmove / worstmove'
     ("pawn", 0.1),
