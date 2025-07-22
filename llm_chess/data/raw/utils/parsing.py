@@ -62,6 +62,24 @@ def coerce_response(text: str, task_type: str, info: Dict = None, **kwargs) -> s
     return processed_text
 
 
+def parse_fen(fen: str) -> Dict:
+    parts = fen.strip().split(maxsplit=5)
+    if len(parts) != 6:
+        raise ValueError("FEN must contain exactly six space-separated fields.")
+
+    board, color, castling, en_passant, halfmove, fullmove = parts
+
+    return {
+        'original_fen'         : fen.strip(),
+        'board_placement'      : board,
+        'active_color'         : color,
+        'castling_availability': castling,
+        'en_passant_target'    : en_passant,
+        'halfmove_clock'       : int(halfmove),
+        'fullmove_number'      : int(fullmove)
+    }
+
+
 # ==================================================
 # Helper Functions
 # ==================================================

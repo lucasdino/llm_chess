@@ -50,8 +50,9 @@ class ResultsDict():
                     else:
                         self.results["Illegal Moves"] += 1
 
-                # Only append to correct_response if all correct
-                if already_guessed == set(answer) and len(predicted_answer) == len(answer):
+                # Only append to correct_response if score >= 0.6
+                score = num_right / (len(answer) + len(predicted_answer) - num_right)
+                if score >= 0.6:
                     self.correct_responses.append({
                         "prompt": prompt,
                         "model_response": model_response,
