@@ -17,32 +17,32 @@ DATASET_CONFIG = [
     {
         "name": "magpie",
         "files": ["magpieclean_20k.jsonl"],
-        "weight": 0.15
+        "weight": 0.18
     },
     {
         "name": "chess_explainer",
         "files": ["combined_chessexplainer_5k.jsonl"],
-        "weight": 0.15
+        "weight": 0.18
     },
     {
         "name": "rs_predictmove",
         "files": ["rejsampling_predictmove_balanced_5882.jsonl"],
-        "weight": 0.2925
+        "weight": 0.3
     },
     {
         "name": "rs_bestworstmove",
         "files": ["rejsampling_bestmove_balanced_2684.jsonl, rejsampling_worstmove_balanced_1814.jsonl"],
-        "weight": 0.2225
+        "weight": 0.23
     },
     {
         "name": "rs_legalmoves",
-        "files": [""],
-        "weight": 0.12
+        "files": ["rejsampling_legalmoves_balanced_650.jsonl"],
+        "weight": 0.04
     },
     {
         "name": "synthetic_moves",
         "files": ["syntheticmoves_blunders_1000.jsonl", "syntheticmoves_goodmoves_300.jsonl"],
-        "weight": 0.065
+        "weight": 0.07
     }
 ]
 
