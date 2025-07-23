@@ -7,7 +7,6 @@ import pandas as pd
 
 from llm_chess.data.raw.utils.board import convert_board, get_piece_name_at_location
 from llm_chess.prompts.chat_to_prompt import ChatProcessor
-from llm_chess.data.raw.utils.sampling_manager import SamplingManager
 
 from .exceptions import DiscardedSample
 from .verl_prompts import user_prompt_bank
@@ -123,13 +122,6 @@ def _generate_sample(df_row, task_type, generator_args, chat_processor, board_no
     win_probs = df_row['Win Probability']
     move_prob_dict = dict(zip(moveset[:], win_probs[:]))
     move_prob_list = list(zip(moveset[:], win_probs[:]))
-
-    # Get fullmove count from board and test against sample for dropping
-    fen_parts   = board.split(" ")
-    move_count  = int(fen_parts[-1])
-    drop_prob = next((prob for threshold, prob in HACKY_DROPSAMPLE if move_count <= threshold), 0.0)
-    if np.random.rand() < drop_prob:
-        raise DiscardedSample()
 
     # Generate our datapoints based on the task at hand
     if task_type == "predictmove":

@@ -14,6 +14,14 @@ from .parsing import parse_fen
 # ================================================================
 # CONFIGS
 # ================================================================
+FULLMOVE_DEFAULT_BUCKETS = [
+    ((0, 9), 0.1),
+    ((10, 19), 0.3),
+    ((20, 29), 0.3),
+    ((30, 39), 0.15),
+    ((40, 150), 0.15)
+]
+
 FULLMOVE_PREDMOVE_BUCKETS = [      # We will want weighting of moves to follow this distribution
     ((0, 9), 0.1),
     ((10, 19), 0.3),
@@ -51,11 +59,18 @@ BESTWORST_PIECES = [      # We want these pieces at this ratio for 'bestmove / w
     ("king", 0.1),
     ("rook", 0.2)
 ]
-TASK_BUCKETING_MAP = {     # This is our mapping from task to which buckets we care about
-    "bestmove": [BESTWORST_PIECES, FULLMOVE_BESTWORST_BUCKETS],
-    "worstmove": [BESTWORST_PIECES, FULLMOVE_BESTWORST_BUCKETS],
-    "legalmoves": [LEGALMOVES_PIECES, FULLMOVE_LEGALMOVES_BUCKETS],
-    "predictmove": [FULLMOVE_PREDMOVE_BUCKETS]
+# TASK_BUCKETING_MAP = {     # This is our mapping from task to which buckets we care about
+#     "bestmove": [BESTWORST_PIECES, FULLMOVE_BESTWORST_BUCKETS],
+#     "worstmove": [BESTWORST_PIECES, FULLMOVE_BESTWORST_BUCKETS],
+#     "legalmoves": [LEGALMOVES_PIECES, FULLMOVE_LEGALMOVES_BUCKETS],
+#     "predictmove": [FULLMOVE_PREDMOVE_BUCKETS]
+# }
+
+TASK_BUCKETING_MAP = {
+    "bestmove": [FULLMOVE_DEFAULT_BUCKETS],
+    "worstmove": [FULLMOVE_DEFAULT_BUCKETS],
+    "legalmoves": [FULLMOVE_DEFAULT_BUCKETS],
+    "predictmove": [FULLMOVE_DEFAULT_BUCKETS]
 }
 
 
