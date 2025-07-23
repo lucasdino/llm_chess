@@ -7,6 +7,7 @@ import pandas as pd
 
 from llm_chess.data.raw.utils.board import convert_board, get_piece_name_at_location
 from llm_chess.prompts.chat_to_prompt import ChatProcessor
+from llm_chess.data.raw.utils.sampling_manager import SamplingManager
 
 from .exceptions import DiscardedSample
 from .verl_prompts import user_prompt_bank
@@ -113,20 +114,6 @@ def create_rl_dataset(df, chat_processor, task, generator_args, board_notation="
 # ==========================================
 # Various helpers
 # ==========================================
-HACKY_DROPSAMPLE = [
-    [10, 0.7],
-    [20, 0.3],
-    [30, 0.0],
-    [40, 0.0],
-    [50, 0.0],
-    [60, 0.0],
-    [70, 0.0],
-    [80, 0.0],
-    [90, 0.0],
-    [100, 0.0]
-]
-
-
 def _generate_sample(df_row, task_type, generator_args, chat_processor, board_notation):
     """
     Multi-case function to generate an RL data sample based on a desired task_type and sample from our train / eval dataset.
