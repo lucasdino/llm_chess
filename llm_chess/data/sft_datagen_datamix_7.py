@@ -31,7 +31,7 @@ DATASET_CONFIG = [
     },
     {
         "name": "rs_bestworstmove",
-        "files": ["rejsampling_bestmove_balanced_2684.jsonl, rejsampling_worstmove_balanced_1814.jsonl"],
+        "files": ["rejsampling_bestmove_balanced_2684.jsonl", "rejsampling_worstmove_balanced_1814.jsonl"],
         "weight": 0.23
     },
     {
