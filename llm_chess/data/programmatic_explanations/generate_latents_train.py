@@ -1,0 +1,101 @@
+# generate_latents.py
+
+from pathlib import Path
+import pandas as pd
+
+from sampling_manager import SamplingManager
+from latents_generator import latents_generator
+
+# Desired sample sizes per task
+TASK_SIZES = {
+    "is_check": 5000,
+    "large_mat_adv": 10000,
+    "mat_bal": 10000,
+    "is_legal": 25000,
+    "under_attack": 10000,
+}
+
+# Sampling criteria
+BASE_CRITERIA = {
+    "movecount": {
+        (0, 9): 0.10,
+        (10, 19): 0.30,
+        (20, 29): 0.30,
+        (30, 39): 0.20,
+        (40, None): 0.10,
+    },
+    "player": {"w": 0.5, "b": 0.5},
+}
+
+GEN_CONFIG = {
+    "is_check": {"tp": 0.8},
+    "large_mat_adv": {"tp": 0.8},
+    "mat_bal": None,
+    "is_legal": {
+        "choose_legal": {"legal_you": 0.5, "legal_opp": 0.1, "illegal": 0.4},
+        "piece_freq": {"p": 1, "n": 2, "b": 2, "r": 2, "q": 3, "k": 1},
+    },
+    "under_attack": {
+        "legal_attack": {"attack_you": 0.4, "attack_opp": 0.2, "safe": 0.4},
+        "piece_freq": {"p": 1, "n": 2, "b": 2, "r": 2, "q": 3, "k": 1},
+    },
+}
+
+TASK_CRITERIA_EXTRA = {
+    "is_check": {
+        "is_check": {"n": 0.50, "w": 0.25, "b": 0.25},
+        "is_check_gen": {"tp": 0.40, "fp": 0.10, "tn": 0.50},
+    },
+    "large_mat_adv": {
+        "large_mat_adv_gen": {"tp": 0.40, "fp": 0.10, "tn": 0.50},
+    },
+    "mat_bal": {
+        "mat_bal": {"y": 0.50, "n": 0.50},
+    },
+    "is_legal": {
+        "is_legal_gen": {"tp": 0.50, "fp": 0.10, "tn": 0.40},
+        "is_legal_piece": {
+            "p": 0.10, "b": 0.20, "n": 0.20, "r": 0.20, "q": 0.20, "k": 0.10,
+        },
+    },
+    "under_attack": {
+        "under_attack_gen": {"tp": 0.40, "fp": 0.20, "tn": 0.40},
+    },
+}
+
+BUCKET_COLUMNS = {
+    "is_check": ["movecount_bucket", "player_bucket", "is_check_bucket", "is_check_gen_bucket"],
+    "large_mat_adv": ["movecount_bucket", "player_bucket", "large_mat_adv_gen_bucket"],
+    "mat_bal": ["movecount_bucket", "player_bucket", "mat_bal_bucket"],
+    "is_legal": ["movecount_bucket", "player_bucket", "is_legal_gen_bucket", "is_legal_piece_bucket"],
+    "under_attack": ["movecount_bucket", "player_bucket", "under_attack_gen_bucket"],
+}
+
+
+def generate(task, count, base_df):
+    cfg = GEN_CONFIG[task]
+    latents_df = latents_generator(task, base_df, cfg) if cfg else latents_generator(task, base_df)
+    sm = SamplingManager(latents_df, BASE_CRITERIA)
+    crit = {**BASE_CRITERIA, **TASK_CRITERIA_EXTRA[task]}
+    out = pd.DataFrame()
+    while len(out) < count:
+        out = pd.concat([out, sm.get_samples(count - len(out), criteria=crit)], ignore_index=True)
+    return out.iloc[:count]
+
+
+def print_distributions(df, cols):
+    for col in cols:
+        print(f"\n{col}:")
+        print(df[col].value_counts(normalize=True).sort_index())
+
+
+if __name__ == "__main__":
+    df = pd.read_csv("data/train_50k.csv")
+    Path("latents_train").mkdir(exist_ok=True)
+
+    for task, count in TASK_SIZES.items():
+        print(f"\n=== {task} ===")
+        samples = generate(task, count, df)
+        print_distributions(samples, BUCKET_COLUMNS[task])
+        outpath = Path(f"latents_train/latent_sft_{task}_{count}.jsonl")
+        samples[f"{task}_chat"].to_json(outpath, orient="records", lines=True)
