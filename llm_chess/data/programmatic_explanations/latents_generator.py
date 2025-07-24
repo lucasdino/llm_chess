@@ -8,7 +8,7 @@ from prompt import _convert_fen_to_visual
 
 
 # ==================================================
-# Prefill Helpers
+# Prefill Helpers / Functions
 # ==================================================
 _PIECE_VALUE = {
     chess.PAWN:   100,
@@ -62,16 +62,28 @@ def _prefill_material_count(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _prefill_identity(df: pd.DataFrame) -> pd.DataFrame:
+    return df
+
 
 # ==================================================
-# Helpers
+# Generator Helpers / Functions
 # ==================================================
 LATENTS_SYSPROMPT = "chess_generic.txt"
 LATENTS_USERPROMPT = (
-    "Here is a board in a game you're currnetly playing:\n{board}\n\n"
+    "Here is a board in a game you're currently playing:\n{board}\n\n"
     "I want you to respond immediately with a single token -- 'Yes' or 'No' -- "
     "to answer my desired question:\n\n{question}"
 )
+
+_piece_letter_map = {            # already in file but shown for clarity
+    chess.PAWN:"p", chess.KNIGHT:"n", chess.BISHOP:"b",
+    chess.ROOK:"r", chess.QUEEN:"q", chess.KING:"k",
+}
+_letter_to_piece = {v:k for k,v in _piece_letter_map.items()}
+_piece_word = {                  # for wording the question
+    "p":"pawn", "n":"knight", "b":"bishop", "r":"rook", "q":"queen", "k":"king"
+}
 
 
 def _generate_is_check(df_row: pd.Series, config_args: Dict):
@@ -155,6 +167,210 @@ def _generate_mat_bal(df_row: pd.Series, config_args: Dict):
     return chat, None
 
 
+def _pick_legal(board: chess.Board, color: bool, weights: Dict[str, float]):
+    letters = [l for l in weights if board.pieces(_letter_to_piece[l], color)]
+    random.shuffle(letters)    
+    seen_letters = set()
+    for l in letters:
+        if l in seen_letters:
+            continue
+        seen_letters.add(l)
+        ptype = _letter_to_piece[l]
+        sqs   = list(board.pieces(ptype, color))
+        random.shuffle(sqs)
+        for sq in sqs:
+            moves = [m for m in board.legal_moves if m.from_square == sq]
+            if moves:
+                return l, random.choice(moves).uci()
+    raise RuntimeError("Side has no legal moves.")
+
+
+def _plausible_move(board: chess.Board,
+                    square: chess.Square,
+                    ptype: chess.PieceType,
+                    color: bool) -> str:
+    tmp = chess.Board(None)
+    tmp.clear(); tmp.turn = color
+    tmp.set_piece_at(square, chess.Piece(ptype, color))
+
+    legal_now = {m for m in board.legal_moves}
+    cand = list(tmp.generate_pseudo_legal_moves())
+    random.shuffle(cand)
+
+    # first illegal candidate
+    for mv in cand:
+        if mv not in legal_now and not board.is_legal(mv):
+            return mv.uci()
+
+    # otherwise try capture‑own‑piece trick with other pieces present
+    for mv in cand:
+        if board.color_at(mv.to_square) == color:
+            return mv.uci()
+
+    raise RuntimeError("All pseudo‑legal moves are legal in this position.")
+
+
+def _generate_is_legal(df_row: pd.Series, cfg: Dict):
+    """
+    Robust legality‑question generator.
+
+    cfg:
+        choose_legal = {"legal_you": w1, "legal_opp": w2, "illegal": w3}
+        piece_freq   = {"p": w, "n": w, …}
+
+    Buckets:
+        tp : legal move by you
+        fp : legal move by opponent (illegal for you)
+        tn : crafted illegal move
+    """
+    board         = chess.Board(df_row["FEN"])
+    you, opp      = board.turn, not board.turn
+    weights       = cfg["piece_freq"]
+    choose_w      = cfg["choose_legal"]
+
+    scenario = random.choices(
+        ["legal_you", "legal_opp", "illegal"],
+        weights=[choose_w["legal_you"], choose_w["legal_opp"], choose_w["illegal"]],
+        k=1
+    )[0]
+
+    piece = move = answer = bucket = None
+
+    # ---------------- attempt each scenario in order ------------------- #
+    if scenario == "legal_you":
+        try:
+            piece, move = _pick_legal(board, you, weights)
+            answer, bucket = "Yes", "tp"
+        except RuntimeError:
+            scenario = "legal_opp"     # Upon failure move to next
+
+    if scenario == "legal_opp":
+        board_opp = board.copy(); board_opp.turn = opp
+        try:
+            piece, move = _pick_legal(board_opp, opp, weights)
+            answer, bucket = "No", "fp"
+        except RuntimeError:
+            scenario = "illegal"
+
+    if scenario == "illegal":
+        # try every piece type and every individual piece until an illegal move materialises
+        letters = [l for l in weights if board.pieces(_letter_to_piece[l], you)]
+        random.shuffle(letters)                       # avoid bias
+        for piece in letters:
+            ptype   = _letter_to_piece[piece]
+            squares = list(board.pieces(ptype, you))
+            random.shuffle(squares)
+            for square in squares:
+                try:
+                    move = _plausible_move(board, square, ptype, you)
+                    answer, bucket = "No", "tn"
+                    break           # success for this scenario
+                except RuntimeError:
+                    continue        # this square yielded no illegal move
+            else:
+                continue            # try next piece type
+            break                   # outer loop breaks when inner found a move
+        else:
+            # every attempt failed → fall back to a legal move by you
+            piece, move = _pick_legal(board, you, weights)
+            answer, bucket = "Yes", "tp"
+
+    # ---------------- build output ------------------------------------- #
+    question = f"Is {move} a legal move for you?"
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question=question)],
+            ["assistant", answer],
+        ]
+    }
+    info = {
+        "is_legal_gen_bucket": bucket,
+        "is_legal_piece_bucket": piece,
+    }
+    return chat, info
+
+
+def _generate_under_attack(df_row: pd.Series, cfg: Dict):
+    """
+    Prompt: “Can your <piece> take their <piece>?”
+
+    Buckets
+      tp : your capture exists               (answer 'Yes')
+      fp : only opponent capture exists      (answer 'No')
+      tn : neither capture exists            (answer 'No')
+    """
+    board = chess.Board(df_row["FEN"])
+    you, opp = board.turn, not board.turn
+    nonking  = {chess.PAWN, chess.KNIGHT, chess.BISHOP,
+                chess.ROOK, chess.QUEEN}
+
+    opp_has_nonking = any(board.pieces(pt, opp) for pt in nonking)
+
+    # --- helper: capture pair set --------------------------------------
+    def capture_pairs(side, allow_king=False):
+        b = board if side == board.turn else board.copy(stack=False); b.turn = side
+        res = set()
+        for m in b.legal_moves:
+            if b.color_at(m.to_square) != (not side):
+                continue
+            if not allow_king and b.piece_type_at(m.to_square) == chess.KING:
+                continue
+            atk = _piece_letter_map[b.piece_type_at(m.from_square)]
+            vic = _piece_letter_map[b.piece_type_at(m.to_square)]
+            res.add((atk, vic))
+        return res
+
+    tp_set = capture_pairs(you, allow_king=not opp_has_nonking)
+    opp_set = capture_pairs(opp, allow_king=True)
+    fp_set = opp_set - tp_set                      # mirror capture only for opp
+
+    # candidate piece types present on each side (exclude king victim if others)
+    you_types = [l for l in cfg["piece_freq"]
+                 if board.pieces(_letter_to_piece[l], you)]
+    opp_types = [l for l in cfg["piece_freq"]
+                 if board.pieces(_letter_to_piece[l], opp)
+                    and (l != "k" or not opp_has_nonking)]
+
+    tn_set = {(p, t) for p in you_types for t in opp_types
+              if (p, t) not in tp_set and (p, t) not in fp_set}
+
+    pools = {
+        "attack_you": list(tp_set),
+        "attack_opp": list(fp_set),
+        "safe":       list(tn_set),
+    }
+
+    # ----- choose scenario among non‑empty pools -----------------------
+    feasible = [k for k, v in pools.items() if v]
+    if not feasible:                       # extremely static position
+        piece, target, answer, bucket = "q", "q", "No", "tn"
+    else:
+        weights = [cfg["legal_attack"][k] for k in feasible]
+        scenario = random.choices(feasible, weights=weights, k=1)[0]
+        piece, target = random.choice(pools[scenario])
+        if scenario == "attack_you":
+            answer, bucket = "Yes", "tp"
+        elif scenario == "attack_opp":
+            answer, bucket = "No",  "fp"
+        else:
+            answer, bucket = "No",  "tn"
+
+    question = f"Can your {_piece_word[piece]} take their {_piece_word[target]}?"
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user",   LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row['FEN']), question=question)],
+            ["assistant", answer],
+        ]
+    }
+    info = {"under_attack_gen_bucket": bucket, "under_attack_piece_bucket": piece + target}
+    return chat, info
+
+
 # ==================================================
 # Router
 # ==================================================
@@ -162,12 +378,16 @@ TASK_MAP = {
     "is_check":          _generate_is_check,
     "large_mat_adv":     _generate_large_mat_adv,
     "mat_bal":           _generate_mat_bal,
+    "is_legal":          _generate_is_legal,
+    "under_attack":      _generate_under_attack,
 }
 
 PREFILL_TASK_MAP = {
     "is_check":          _prefill_is_check,
     "large_mat_adv":     _prefill_material_count,
     "mat_bal":           _prefill_material_count,
+    "is_legal":          _prefill_identity,
+    "under_attack":      _prefill_identity,
 }
 
 

@@ -153,13 +153,11 @@ class SamplingManager:
         rem = n - floors.sum()
 
         order = np.argsort(-(tbl["desired"] - floors))
-        for i in order[:rem]:
-            tbl.loc[i, "take"] += 1
+        tbl.loc[order[:rem], "take"] += 1
 
-        if not replace and (tbl["take"] > tbl["capacity"]).any():
-            over = tbl[tbl["take"] > tbl["capacity"]]
-            raise ValueError("Not enough rows without replacement.\n"
-                             f"Shortages:\n{over}")
+        # cap to capacity instead of erroring
+        if not replace:
+            tbl["take"] = np.minimum(tbl["take"], tbl["capacity"])
 
         # -------- draw --------------------------------------------------- #
         pieces = []
