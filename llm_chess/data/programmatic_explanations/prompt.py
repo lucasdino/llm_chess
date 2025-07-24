@@ -1,11 +1,14 @@
+import math
 import random
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from phrase_banks import initial_think_phrase
 
 
 
-# Main external function we'll use to generate our prompts
+# --------------------------------------------------
+# |       Main Function for Explainer Data         |
+# --------------------------------------------------
 def generate_data_sample(fen: str, explanations: List[str], final_statement: str, final_move_uci: str) -> Tuple[str, str, str]:
     """  
     Given a board (FEN notation), explanations, and a final evaluation, create a reasoning trace to train a model on.
