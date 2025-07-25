@@ -8,11 +8,11 @@ from latents_generator import latents_generator
 
 # Desired sample sizes per task
 TASK_SIZES = {
-    "is_check": 5000,
-    "large_mat_adv": 10000,
-    "mat_bal": 10000,
-    "is_legal": 25000,
-    "under_attack": 10000,
+    "is_check": 10000,
+    "large_mat_adv": 25000,
+    "mat_bal": 25000,
+    "is_legal": 50000,
+    "under_attack": 25000,
 }
 
 # Sampling criteria
