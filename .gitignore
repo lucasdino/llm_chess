@@ -34,6 +34,7 @@ __pycache__/
 # Chess Engine Files
 llm_chess/data/programmatic_explanations/stockfish/
 llm_chess/data/programmatic_explanations/latents_train/
+llm_chess/data/programmatic_explanations/testing/
 
 # Big data files we'll keep local (for processing / etc.)
 llm_chess/data/raw/magpie_data/
