@@ -1,126 +1,139 @@
 import os
+import pprint
+import textwrap
+from pathlib import Path
+from typing import List, Tuple
 
-# See https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_1/ for details
-LLAMA_3_SPECIAL_TOKENS = {
-    "start_header": "<|start_header_id|>",
-    "end_header": "<|end_header_id|>",
-    "end_of_turn": "<|eot_id|>"
-}
-
-# See https://www.llama.com/docs/model-cards-and-prompt-formats/llama4/ for details
-LLAMA_4_SPECIAL_TOKENS = {
-    "start_header": "<|header_start|>",
-    "end_header": "<|header_end|>",
-    "end_of_turn": "<|eot|>"
-}
-
-# See https://huggingface.co/Qwen/Qwen3-8B?chat_template=default for details
-QWEN_3_SPECIAL_TOKENS = {
-    "start_header": "<|im_start|>",
-    "end_header": "<|im_end|>",
-    "end_of_turn": ""
-}
-
-# See https://huggingface.co/Qwen/Qwen3-8B?chat_template=default for details
-QWEN_25_SPECIAL_TOKENS = {
-    "start_header": "<|im_start|>",
-    "end_header": "<|im_end|>",
-    "end_of_turn": ""
-}
-
-# See https://huggingface.co/microsoft/Phi-4-reasoning?chat_template=default&format=true for details
-PHI_4_SPECIAL_TOKENS = {
-    "start_header": "<|im_start|>",
-    "end_header": "<|im_sep|>",
-    "end_of_turn": "<|im_end|>"
-}
-
-# See https://huggingface.co/deepseek-ai/DeepSeek-R1-0528?chat_template=default&format=true for details
-R1_SPECIAL_TOKENS = {
-    "start_header": "<|",
-    "end_header": "|>",
-    "end_of_turn": ""
-}
-
-K2_SPECIAL_TOKENS = {
-    "start_header": "<|im_{role}|>",
-    "end_header": "<|im_middle|>",
-    "end_of_turn": "<|im_end|>"
-}
+from transformers import AutoTokenizer
 
 
+class ChatProcessor:
+    """
+    Build a chat prompt with the model's *own* Hugging‑Face chat template.
 
-class ChatProcessor():
-    def __init__(self, model_version):
-        self.loaded_prompts = dict()
-        self.model_version = model_version
-        self._get_special_tokens(model_version)
+    Parameters
+    ----------
+    tokenizer_version : str | None
+        Name of a sub‑folder inside ./tokenizer_config holding the HF
+        `tokenizer_config.json`, `special_tokens_map.json`, merges, vocab, …
+        Pass `None` if you *don't* want any processing.
+    """
 
-    def get_prompt(self, filename):
-        """ Checks if prompt has already been cached -- if not, loads in prompt. """
+    def __init__(self, tokenizer_version: str | None):
+        self.tokenizer_version = tokenizer_version
+        self.loaded_prompts: dict[str, str] = {}
+
+        cfg_dir = (
+            Path(__file__).resolve().parent / "tokenizer_config" / tokenizer_version
+        )
+        if not cfg_dir.exists():
+            raise FileNotFoundError(
+                f"Tokenizer files for “{tokenizer_version}” "
+                f"not found in {cfg_dir}"
+            )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            cfg_dir, trust_remote_code=True
+        )
+
+        # Sanity check: template must exist
+        if not getattr(self.tokenizer, "chat_template", None):
+            raise ValueError(
+                f"Tokenizer for {tokenizer_version} has no chat_template; "
+                "copy the full HF tokenizer directory."
+            )
+
+    # ------------------------------------------------------------------ helpers
+
+    def _get_cached_prompt(self, filename: str) -> str:
+        """Cache small .txt files referenced from system messages."""
         if filename not in self.loaded_prompts:
-            dir_path = os.path.dirname(os.path.abspath(__file__))
-            abs_path = os.path.join(dir_path, 'samples', filename)
-            with open(abs_path, 'r', encoding='utf-8') as f:
-                prompt = f.read()
-            self.loaded_prompts[filename] = prompt
+            here = Path(__file__).resolve().parent
+            with open(here / "samples" / filename, "r", encoding="utf‑8") as f:
+                self.loaded_prompts[filename] = f.read()
         return self.loaded_prompts[filename]
 
-    def process_chat(self, chat):
-        full_prompt = ""    # vLLM automatically prepends bot token 
-        response = ""
-        
-        # Case where we don't want to process anything.
-        # Returning just 'chat' because we don't want to require 'chat' to be in a particular dict format
-        if self.special_tokens is None:
-            return chat
-        
+    # ---------------------------------------------------------------- public API
+
+    def process_chat(
+        self, chat: List[Tuple[str, str]]
+    ) -> Tuple[str, str | None]:
+        """
+        Convert a list like [('system', …), ('user', …), ('assistant', …)]
+        into `(prompt, assistant_reply)`.
+
+        * If self.tokenizer_version is None → returns chat unchanged.
+        * If there is no assistant entry yet, `assistant_reply` will be "".
+        """
+
+        messages = []
+        assistant_reply = ""
+
         for role, content in chat:
-            # Always add the header (even if it is assistant)
-            full_prompt += self._add_header(role) 
-            if role == 'system':
-                if content.endswith('.txt') and all(c not in content for c in r'\/:*?"<>|'):  # Check if valid .txt file
-                    full_prompt = full_prompt + self.get_prompt(content) + self.special_tokens['end_of_turn']
+            if role == "assistant":
+                assistant_reply = content
+                continue
+
+            if role == "system" and content.endswith(".txt") and not any(
+                c in content for c in r'\/:*?"<>|'
+            ):
+                content = self._get_cached_prompt(content)
+
+            messages.append({"role": role, "content": content})
+
+        # Build the prompt using the model's *own* template.
+
+        try:
+            prompt = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True,  # leaves the assistant “stub” open
+            )
+        except:
+            print(chat)
+            # print(messages)
+            raise ValueError()
+
+
+        return prompt, assistant_reply
+    
+
+
+# ===============================================
+# Simple helper for setting up SFT data
+# ===============================================
+class LlamaFactoryChatProcessor:
+    """
+    Simple wrapper to cache system prompts for use in SFT.
+    """
+
+    def __init__(self):
+        self.loaded_prompts: dict[str, str] = {}
+
+    def _get_cached_prompt(self, filename: str) -> str:
+        if filename not in self.loaded_prompts:
+            here = Path(__file__).resolve().parent
+            with open(here / "samples" / filename, "r", encoding="utf-8") as f:
+                self.loaded_prompts[filename] = f.read()
+        return self.loaded_prompts[filename]
+
+    def process_chat(self, chat: list[tuple[str, str]]) -> tuple[str, str, str]:
+        sys = usr = ast = None
+        for role, res in chat:
+            if role == "system":
+                if res.endswith(".txt") and not any(c in res for c in r'\/:*?"<>|'):
+                    sys = self._get_cached_prompt(res)
                 else:
-                    full_prompt = full_prompt + content + self.special_tokens['end_of_turn']
-            elif role == 'user':
-                full_prompt = full_prompt + content + self.special_tokens['end_of_turn']
-            elif role == 'assistant':
-                response = content
+                    sys = res
+            elif role == "user":
+                usr = res
+            elif role == "assistant":
+                ast = res
             else:
-                raise(ValueError(f"Role must be one of following: system, user, assistant. Currently set as {role}."))
-
-        return full_prompt, response
-    
-    # ===========================================================
-    # Private Helpers
-    # ===========================================================
-    
-    def _get_special_tokens(self, model_version):
-        if model_version == "llama3":
-            self.special_tokens = LLAMA_3_SPECIAL_TOKENS
-        elif model_version == "llama4":
-            self.special_tokens = LLAMA_4_SPECIAL_TOKENS
-        elif model_version == "qwen3":
-            self.special_tokens = QWEN_3_SPECIAL_TOKENS
-        elif model_version == "qwen25":
-            self.special_tokens = QWEN_25_SPECIAL_TOKENS
-        elif model_version == "phi4":
-            self.special_tokens = PHI_4_SPECIAL_TOKENS
-        elif model_version == "r1":
-            self.special_tokens = R1_SPECIAL_TOKENS
-        elif model_version == "kimi_k2":
-            self.special_tokens = K2_SPECIAL_TOKENS
-        elif model_version is None:
-            self.special_tokens = None
-        else:
-            raise(f"model_version {model_version} is undefined.")
-
-    def _add_header(self, role):
-        # Need to handle special case for R1
-        if self.model_version == "r1":
-            return self.special_tokens['start_header'] + role.title() + self.special_tokens['end_header']
-        elif self.model_version == "kimi_k2":
-            return self.special_tokens['start_header'].format(role=role) + role + self.special_tokens['end_header']
-
-        return self.special_tokens['start_header'] + role + self.special_tokens['end_header']
+                raise ValueError(f"Undefined role encountered: {role}")
+        
+        if sys is None or usr is None or ast is None:
+            print(f"FAILURE:\nSys:\n{sys}\n\nUsr:\n{usr}\n\nAst:\n{ast}")
+            raise ValueError(f"System / User / Assistant data is none / non-existant.")
+        
+        return sys, usr, ast
