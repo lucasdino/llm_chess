@@ -11,7 +11,7 @@ push_to_hub: false
 
 ### dataset
 dataset: llmchess_programmatic
-template: alpaca
+template: default
 cutoff_len: 3000
 overwrite_cache: true
 
