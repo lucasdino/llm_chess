@@ -20,7 +20,7 @@ TASK_SIZES = {
     # "large_mat_adv": 100_000,
     # "mat_bal": 100_000,
     "is_legal": 100_000,
-    "under_attack": 100_000,
+    # "under_attack": 100_000,
 }
 
 # Sampling criteria
