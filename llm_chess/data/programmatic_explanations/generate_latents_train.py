@@ -6,9 +6,10 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "eval"
+GENERATION_TYPE = "trainXL"
 
 DATA_FILES = {
+    "trainXL": "data/trainxl_1mm.csv",
     "train": "data/train_50k.csv",
     "eval": "data/evals_1k.csv",
 }
