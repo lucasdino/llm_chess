@@ -16,11 +16,11 @@ DATA_FILES = {
 
 # Desired sample sizes per task
 TASK_SIZES = {
-    "is_check": 256,
-    "large_mat_adv": 256,
-    "mat_bal": 256,
-    "is_legal": 256,
-    "under_attack": 256,
+    # "is_check": 100_000,
+    # "large_mat_adv": 100_000,
+    # "mat_bal": 100_000,
+    "is_legal": 100_000,
+    "under_attack": 100_000,
 }
 
 # Sampling criteria
