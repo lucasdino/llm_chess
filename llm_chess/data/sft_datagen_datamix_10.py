@@ -35,7 +35,7 @@ DATASET_CONFIG = [
     },
         {
         "name": "latent_sft_data",
-        "files": ["latent_sft_is_check_10000.jsonl", "latent_sft_is_legal_50000.jsonl", "latent_sft_large_mat_adv_25000.jsonl", "latent_sft_mat_bal_25000.jsonl", "latent_sft_under_attack_25000.jsonl"],
+        "files": ["latentsft_train_is_check_10000.jsonl", "latentsft_train_is_legal_50000.jsonl", "latentsft_train_large_mat_adv_25000.jsonl", "latentsft_train_mat_bal_25000.jsonl", "latentsft_train_under_attack_25000.jsonl"],
         "weight": 0.8
     }
 ]

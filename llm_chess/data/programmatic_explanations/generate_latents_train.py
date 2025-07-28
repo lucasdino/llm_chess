@@ -6,13 +6,20 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
+GENERATION_TYPE = "eval"
+
+DATA_FILES = {
+    "train": "data/train_50k.csv",
+    "eval": "data/evals_1k.csv",
+}
+
 # Desired sample sizes per task
 TASK_SIZES = {
-    "is_check": 10000,
-    "large_mat_adv": 25000,
-    "mat_bal": 25000,
-    "is_legal": 50000,
-    "under_attack": 25000,
+    "is_check": 256,
+    "large_mat_adv": 256,
+    "mat_bal": 256,
+    "is_legal": 256,
+    "under_attack": 256,
 }
 
 # Sampling criteria
@@ -90,12 +97,12 @@ def print_distributions(df, cols):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv("data/train_50k.csv")
+    df = pd.read_csv(DATA_FILES[GENERATION_TYPE])
     Path("latents_train").mkdir(exist_ok=True)
 
     for task, count in TASK_SIZES.items():
         print(f"\n=== {task} ===")
         samples = generate(task, count, df)
         print_distributions(samples, BUCKET_COLUMNS[task])
-        outpath = Path(f"latents_train/latent_sft_{task}_{count}.jsonl")
+        outpath = Path(f"latents_train/latentsft_{GENERATION_TYPE}_{task}_{count}.jsonl")
         samples[f"{task}_chat"].to_json(outpath, orient="records", lines=True)
