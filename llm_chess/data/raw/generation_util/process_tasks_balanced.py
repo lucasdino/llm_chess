@@ -125,7 +125,7 @@ def _balance_to_distribution(samples: List[dict],
 # ==========================================
 def process_tasks_balanced(tasks, generator_args, output_folder,
                            model_version, output_type="parquet"):
-    chat_processor = ChatProcessor(model_version=model_version)
+    chat_processor = ChatProcessor(tokenizer_version=model_version)
 
     for task in tasks:
         # ── Read & shuffle raw data ─────────────────────────────────
@@ -243,7 +243,8 @@ def _generate_sample(df_row, task_type, generator_args,
         if len(moveset) < generator_args["predictmove_min_possible_moves"]:
             raise DiscardedSample()
 
-        sys_p  = chat_processor.get_prompt("chess_task_sysprompt.txt")
+        
+        sys_p  = chat_processor._get_cached_prompt("chess_task_sysprompt.txt")
         usr_p  = user_prompt_bank[task_type].format(
             formatted_board=convert_board(board, board_notation))
         gt     = str(_score_scaling(
@@ -264,7 +265,7 @@ def _generate_sample(df_row, task_type, generator_args,
         random.shuffle(cand)
 
         gt     = str({"answer": best_move, "candidates": cand})
-        sys_p  = chat_processor.get_prompt("chess_task_sysprompt.txt")
+        sys_p  = chat_processor._get_cached_prompt("chess_task_sysprompt.txt")
         usr_p  = user_prompt_bank[task_type].format(
             formatted_board=convert_board(board, board_notation),
             move_candidates=cand,
@@ -282,7 +283,7 @@ def _generate_sample(df_row, task_type, generator_args,
         random.shuffle(cand)
 
         gt     = str({"answer": worst_move, "candidates": cand})
-        sys_p  = chat_processor.get_prompt("chess_task_sysprompt.txt")
+        sys_p  = chat_processor._get_cached_prompt("chess_task_sysprompt.txt")
         usr_p  = user_prompt_bank[task_type].format(
             formatted_board=convert_board(board, board_notation),
             move_candidates=cand,
@@ -303,7 +304,7 @@ def _generate_sample(df_row, task_type, generator_args,
             raise DiscardedSample()
 
         gt    = str([m for m in moveset if m.startswith(piece_pos)])
-        sys_p = chat_processor.get_prompt("chess_task_sysprompt.txt")
+        sys_p = chat_processor._get_cached_prompt("chess_task_sysprompt.txt")
         usr_p = user_prompt_bank[task_type].format(
             formatted_board=convert_board(board, board_notation),
             piece_name=piece_name,
