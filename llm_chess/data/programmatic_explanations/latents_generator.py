@@ -1,3 +1,4 @@
+import ast
 import math
 import chess
 import random
@@ -19,6 +20,18 @@ _PIECE_VALUE = {
     chess.KING:     0,
 }
 
+
+def _get_piece_values() -> str:
+    return (f"The following are values for each piece: "
+            f"Pawn={_PIECE_VALUE[chess.PAWN]}; "
+            f"Knight={_PIECE_VALUE[chess.KNIGHT]}; "
+            f"Bishop={_PIECE_VALUE[chess.BISHOP]}; "
+            f"Rook={_PIECE_VALUE[chess.ROOK]}; "
+            f"Queen={_PIECE_VALUE[chess.QUEEN]}; "
+            f"King={_PIECE_VALUE[chess.KING]}. "
+            f"You should respond with just a number in the format '+#,##0' or '-#,##0' to the following.")
+
+
 def _material_cp(board: chess.Board) -> int:
     """Static material score in centipawns (white‑positive, black‑negative)."""
     score = 0
@@ -26,6 +39,24 @@ def _material_cp(board: chess.Board) -> int:
         score += val * (len(board.pieces(ptype, chess.WHITE)) -
                         len(board.pieces(ptype, chess.BLACK)))
     return score
+
+
+def _prob_bucket(p: float) -> str:
+    if p < 0.2:   return "0-0.2"
+    if p < 0.4:   return "0.2-0.4"
+    if p < 0.6:   return "0.4-0.6"
+    if p < 0.8:   return "0.6-0.8"
+    return "0.8-1"
+
+
+def _pick_move_prob(row: pd.Series) -> tuple[str, float]:
+    """Return a (move, win‑probability) pair, parsing list‑strings if needed."""
+    mv = ast.literal_eval(row["Move"]) if isinstance(row["Move"], str) and row["Move"].startswith("[") else row["Move"]
+    wp = ast.literal_eval(row["Win Probability"]) if isinstance(row["Win Probability"], str) and row["Win Probability"].startswith("[") else row["Win Probability"]
+    if isinstance(mv, list):
+        idx = random.randrange(len(mv))
+        return mv[idx], float(wp[idx])
+    return mv, float(wp)
 
 
 def _prefill_is_check(df: pd.DataFrame) -> pd.DataFrame:
@@ -62,6 +93,30 @@ def _prefill_material_count(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _prefill_mat_adv_value(df: pd.DataFrame) -> pd.DataFrame:
+    df = _prefill_material_count(df)
+    
+    def _bucket(cp: int) -> str:
+        a = abs(cp)
+        if a <= 100:
+            return "0-100"
+        elif a <= 300:
+            return "100-300"
+        else:
+            return "300+"
+    
+    df = df.copy()
+    df["mat_adv_abs_bucket"] = df["mat_adv"].apply(_bucket)
+    return df
+
+
+def _mobility_bucket(n: int) -> str:
+    if n <= 1:  return "0-1"
+    if n <= 3:  return "2-3"
+    if n <= 5:  return "4-5"
+    return "6+"
+
+
 def _prefill_identity(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
@@ -71,10 +126,10 @@ def _prefill_identity(df: pd.DataFrame) -> pd.DataFrame:
 # ==================================================
 LATENTS_SYSPROMPT = "chess_generic.txt"
 LATENTS_USERPROMPT = (
-    "Here is a board in a game you're currently playing:\n{board}\n\n"
-    "I want you to respond immediately with a single token -- 'Yes' or 'No' -- "
-    "to answer my desired question:\n\n{question}"
+    "Here is a board in a game you're currently playing:\n{board}\n\n{add_info}\n\n"
+    "My question:\n{question}"
 )
+ADD_INFO_YN = "You should respond with a single token -- 'Yes' or 'No' -- to the following."
 
 _piece_letter_map = {            # already in file but shown for clarity
     chess.PAWN:"p", chess.KNIGHT:"n", chess.BISHOP:"b",
@@ -115,7 +170,9 @@ def _generate_is_check(df_row: pd.Series, config_args: Dict):
     # Formatting outputs
     sys_prompt = LATENTS_SYSPROMPT
     user_prompt = LATENTS_USERPROMPT.format(
-        board=_convert_fen_to_visual(df_row["FEN"]), question=question
+        board=_convert_fen_to_visual(df_row["FEN"]), 
+        question=question, 
+        add_info=ADD_INFO_YN
     )
     df_info = {"is_check_gen_bucket": cat}
     chat = {"chat": [["system", sys_prompt], ["user", user_prompt], ["assistant", answer]]}
@@ -142,6 +199,7 @@ def _generate_large_mat_adv(df_row: pd.Series, config_args: Dict):
     user_prompt = LATENTS_USERPROMPT.format(
         board=_convert_fen_to_visual(df_row["FEN"]),
         question=question,
+        add_info=ADD_INFO_YN
     )
     df_info = {"large_mat_adv_gen_bucket": cat}
     chat = {"chat": [["system", sys_prompt], ["user", user_prompt], ["assistant", answer]]}
@@ -160,6 +218,7 @@ def _generate_mat_bal(df_row: pd.Series, config_args: Dict):
     user_prompt = LATENTS_USERPROMPT.format(
         board=_convert_fen_to_visual(df_row["FEN"]),
         question=question,
+        add_info=ADD_INFO_YN
     )
     chat    = {"chat": [["system", sys_prompt],
                         ["user",   user_prompt],
@@ -188,49 +247,75 @@ def _pick_legal(board: chess.Board, color: bool, weights: Dict[str, float]):
 def _plausible_move(board: chess.Board,
                     square: chess.Square,
                     ptype: chess.PieceType,
-                    color: bool) -> str:
-    tmp = chess.Board(None)
-    tmp.clear(); tmp.turn = color
-    tmp.set_piece_at(square, chess.Piece(ptype, color))
+                    color: bool,
+                    legal_check: bool = False) -> str:
 
-    legal_now = {m for m in board.legal_moves}
-    cand = list(tmp.generate_pseudo_legal_moves())
-    random.shuffle(cand)
+    def empty_board_cands():
+        b = chess.Board(None)
+        b.clear()
+        b.set_piece_at(square, chess.Piece(ptype, color))
+        b.turn = color
+        lst = list(b.generate_pseudo_legal_moves())
+        random.shuffle(lst)
+        return lst
 
-    # first illegal candidate
-    for mv in cand:
-        if mv not in legal_now and not board.is_legal(mv):
+    # 1) Non‑check: shape from empty board, skip any truly legal real‑board moves
+    if not legal_check:
+        for mv in empty_board_cands():
+            # only skip your own pieces -- allow empty landings and opponent captures
+            if board.color_at(mv.to_square) == color:
+                continue
+            if board.is_legal(mv):  # if it actually is legal → skip
+                continue
             return mv.uci()
 
-    # otherwise try capture‑own‑piece trick with other pieces present
-    for mv in cand:
+    # 2) In‑check: real‑board pseudo‑legals, skip real‑legals, pick ones that still leave you in check
+    else:
+        tmp = board.copy(stack=False)
+        tmp.turn = color
+        legal_now = set(tmp.legal_moves)
+        cands = list(tmp.generate_pseudo_legal_moves())
+        random.shuffle(cands)
+        for mv in cands:
+            if mv in legal_now:
+                continue
+            b2 = tmp.copy(stack=False)
+            b2.push(mv)
+            if b2.is_check():
+                return mv.uci()
+
+    # 3) Fallback → retry the empty‑board logic (so you never get a self‑capture from real board)
+    for mv in empty_board_cands():
         if board.color_at(mv.to_square) == color:
+            continue
+        if not board.is_legal(mv):
             return mv.uci()
 
-    raise RuntimeError("All pseudo‑legal moves are legal in this position.")
+    raise RuntimeError("No plausible illegal move found.")
 
 
 def _generate_is_legal(df_row: pd.Series, cfg: Dict):
     """
-    Robust legality‑question generator.
-
     cfg:
+        piece_freq   = {"p": w, "n": …}
         choose_legal = {"legal_you": w1, "legal_opp": w2, "illegal": w3}
-        piece_freq   = {"p": w, "n": w, …}
-
-    Buckets:
-        tp : legal move by you
-        fp : legal move by opponent (illegal for you)
-        tn : crafted illegal move
+        # NEW: nothing else required – ‘in‑check’ handled internally.
     """
-    board         = chess.Board(df_row["FEN"])
-    you, opp      = board.turn, not board.turn
-    weights       = cfg["piece_freq"]
-    choose_w      = cfg["choose_legal"]
+    board, you, opp = chess.Board(df_row["FEN"]), None, None
+    you, opp        = board.turn, not board.turn
+    weights         = cfg["piece_freq"]
+
+    # ----- check status & weight override -----------------------------
+    in_check = board.is_check()
+    choose_w = ({"legal_you": 0.1, "legal_opp": 0.1, "illegal": 0.8}
+                if in_check else
+                cfg["choose_legal"])
 
     scenario = random.choices(
         ["legal_you", "legal_opp", "illegal"],
-        weights=[choose_w["legal_you"], choose_w["legal_opp"], choose_w["illegal"]],
+        weights=[choose_w["legal_you"],
+                 choose_w["legal_opp"],
+                 choose_w["illegal"]],
         k=1
     )[0]
 
@@ -262,7 +347,7 @@ def _generate_is_legal(df_row: pd.Series, cfg: Dict):
             random.shuffle(squares)
             for square in squares:
                 try:
-                    move = _plausible_move(board, square, ptype, you)
+                    move = _plausible_move(board, square, ptype, you, legal_check=board.is_check())
                     answer, bucket = "No", "tn"
                     break           # success for this scenario
                 except RuntimeError:
@@ -276,19 +361,21 @@ def _generate_is_legal(df_row: pd.Series, cfg: Dict):
             answer, bucket = "Yes", "tp"
 
     # ---------------- build output ------------------------------------- #
-    question = f"Is {move} a legal move for you?"
+    question = f"Can you legally play {move}?"
     chat = {
         "chat": [
             ["system", LATENTS_SYSPROMPT],
             ["user", LATENTS_USERPROMPT.format(
                 board=_convert_fen_to_visual(df_row["FEN"]),
-                question=question)],
+                question=question,
+                add_info=ADD_INFO_YN)],
             ["assistant", answer],
         ]
     }
     info = {
-        "is_legal_gen_bucket": bucket,
+        "is_legal_gen_bucket":   bucket,
         "is_legal_piece_bucket": piece,
+        "is_legal_in_check_bucket":     ("y" if in_check else "n"),
     }
     return chat, info
 
@@ -363,12 +450,215 @@ def _generate_under_attack(df_row: pd.Series, cfg: Dict):
         "chat": [
             ["system", LATENTS_SYSPROMPT],
             ["user",   LATENTS_USERPROMPT.format(
-                board=_convert_fen_to_visual(df_row['FEN']), question=question)],
+                    board=_convert_fen_to_visual(df_row['FEN']), 
+                    question=question, 
+                    add_info=ADD_INFO_YN
+                )],
             ["assistant", answer],
         ]
     }
     info = {"under_attack_gen_bucket": bucket, "under_attack_piece_bucket": piece + target}
     return chat, info
+
+
+def _generate_mat_adv_value(df_row: pd.Series, _cfg: Dict):
+    ask_white = random.random() < 0.5
+    color     = "white" if ask_white else "black"
+    answer    = str(df_row["mat_adv"] if ask_white else -df_row["mat_adv"])
+
+    chat = {"chat": [
+        ["system", LATENTS_SYSPROMPT],
+        ["user", LATENTS_USERPROMPT.format(
+            board=_convert_fen_to_visual(df_row["FEN"]),
+            add_info=_get_piece_values(),
+            question=f"What is the material advantage for {color}?"
+        )],
+        ["assistant", answer],
+    ]}
+    info = {
+        "mat_adv_abs_bucket": df_row["mat_adv_abs_bucket"],
+        "mat_adv_question_color": color,
+    }
+    return chat, info
+
+
+def _generate_win_prob(df_row: pd.Series, _cfg: Dict):
+    move, prob     = _pick_move_prob(df_row)
+    decs           = random.randint(1, 2)
+    answer         = f"{prob:.{decs}f}"
+    add_info       = (f"You should respond with a decimal in '0.#' format using exactly {decs} "
+                      f"decimal place{'s' if decs>1 else ''} to the following.")
+    question       = f"If you play {move}, what is your expected probability of winning?"
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question=question,
+                add_info=add_info
+            )],
+            ["assistant", answer],
+        ]
+    }
+    info = {"win_prob_bucket": _prob_bucket(prob)}
+    return chat, info
+
+
+def _generate_mobility(df_row: pd.Series, cfg: Dict):
+    board = chess.Board(df_row["FEN"])
+    you   = board.turn
+
+    # pick a piece TYPE you actually have, using cfg["piece_freq"] weights
+    letters = [l for l in cfg["piece_freq"] if board.pieces(_letter_to_piece[l], you)]
+    piece_l = random.choices(letters, weights=[cfg["piece_freq"][l] for l in letters], k=1)[0]
+    ptype   = _letter_to_piece[piece_l]
+
+    # pick a concrete piece (square) of that type
+    square  = random.choice(list(board.pieces(ptype, you)))
+    sq_name = chess.square_name(square)
+
+    n_moves = sum(1 for mv in board.legal_moves if mv.from_square == square)
+
+    question = f"How many legal moves does your {_piece_word[piece_l]} at {sq_name} have?"
+    answer   = str(n_moves)
+
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question=question,
+                add_info="You should respond with just an integer to the following."
+            )],
+            ["assistant", answer],
+        ]
+    }
+    info = {
+        "mobility_piece_bucket": piece_l,
+        "mobility_moves_bucket": _mobility_bucket(n_moves),
+    }
+    return chat, info
+
+
+def _generate_contrastive_ntp(df_row: pd.Series, cfg: Dict):
+    """
+    Ask which of two moves (same piece/square) is better.
+    The assistant must answer with the *destination* square of the better move.
+    Buckets: '1' best‑move listed first, '2' best listed second, 'None' = fail.
+    """
+    # ── parse list columns ───────────────────────────────────────────────
+    mv = ast.literal_eval(df_row["Move"]) if isinstance(df_row["Move"], str) and df_row["Move"].startswith("[") else df_row["Move"]
+    wp = ast.literal_eval(df_row["Win Probability"]) if isinstance(df_row["Win Probability"], str) and df_row["Win Probability"].startswith("[") else df_row["Win Probability"]
+    if not (isinstance(mv, list) and isinstance(wp, list)):
+        raise ValueError("Contrastive NTP requires list‑valued 'Move' and 'Win Probability'.")
+
+    pairs  = list(zip(mv, map(float, wp)))                # [(uci, prob), …]
+    board  = chess.Board(df_row["FEN"]); you = board.turn
+    thr    = cfg.get("min_threshold", 0.25)
+    pieces = [l for l in cfg.get("piece_freq", _piece_letter_map.keys()) if board.pieces(_letter_to_piece[l], you)]
+    random.shuffle(pieces)
+
+    for pl in pieces:
+        for sq in random.sample(list(board.pieces(_letter_to_piece[pl], you)), k=len(board.pieces(_letter_to_piece[pl], you))):
+            here = [(m, p) for m, p in pairs if chess.Move.from_uci(m).from_square == sq]
+            if len(here) < 2: 
+                continue
+            best_m, best_p = max(here, key=lambda t: t[1])
+            worst = [t for t in here if best_p - t[1] >= thr and t[0] != best_m]
+            if not worst: 
+                continue
+            worst_m, _ = random.choice(worst)
+            opts = [best_m, worst_m] if random.random() < 0.5 else [worst_m, best_m]
+            answer = chess.Move.from_uci(best_m).uci()[2:4]      # destination only
+            bucket = "1" if opts[0] == best_m else "2"
+
+            q = (f"For the {'white' if you else 'black'} {_piece_word[pl]} on {chess.square_name(sq)}, "
+                 f"which of the following moves are better between {opts[0]} and {opts[1]}?")
+
+            chat = {"chat": [
+                ["system", LATENTS_SYSPROMPT],
+                ["user", LATENTS_USERPROMPT.format(
+                    board=_convert_fen_to_visual(df_row['FEN']),
+                    question=q,
+                    add_info="Respond immediately with just the destination square (e.g. 'e4') -- nothing else."
+                )],
+                ["assistant", answer],
+            ]}
+            info = {
+                "contrastive_ntp_bucket": bucket,
+                "contrastive_ntp_piece_bucket": pl,
+                "contrastive_ntp_delta": round(best_p - min(t[1] for t in worst), 3),
+            }
+            return chat, info
+
+    # ── generation failed ────────────────────────────────────────────────
+    empty_info = {
+        "contrastive_ntp_bucket": "None",
+        "contrastive_ntp_piece_bucket": None,
+        "contrastive_ntp_delta": 0.0,
+    }
+    return {"chat": []}, empty_info
+
+
+def _generate_cloze_capture(df_row: pd.Series, cfg: Dict):
+    """
+    Pick a *unique* capture (only one friendly piece can capture that target).
+    The blank is the origin square.  Answer is that square (e.g. 'e4').
+
+    cfg:
+      • piece_freq : lottery weights like other tasks.
+    Info columns (always present):
+      • cloze_piece_bucket  : 'p','n','b','r','q','k' or 'None'
+    """
+    board = chess.Board(df_row["FEN"]); you, opp = board.turn, not board.turn
+    weights = cfg.get("piece_freq", _piece_letter_map.keys())
+
+    # --- collect legal capture moves, grouped by target square ----------
+    targets = {}   # to_sq -> [(from_sq, p_letter, victim_letter)]
+    for m in board.legal_moves:
+        if not board.is_capture(m): 
+            continue
+        if board.is_en_passant(m):
+            continue
+        frm, to = m.from_square, m.to_square
+        p_l = _piece_letter_map[board.piece_type_at(frm)]
+        v_l = _piece_letter_map[board.piece_type_at(to)]
+        targets.setdefault(to, []).append((frm, p_l, v_l))
+
+    # --- keep only targets with exactly one attacker --------------------
+    unique = [(frm, p_l, v_l, to)            # include to_sq for wording
+              for to, lst in targets.items() if len(lst) == 1
+              for frm, p_l, v_l in lst]
+
+    if unique:
+        # lottery over piece types present
+        present = [u for u in unique if u[1] in weights]
+        if not present:
+            unique = []   # fall through to failure
+        else:
+            types = [u[1] for u in present]
+            chosen_type = random.choices(types,
+                                          weights=[weights[t] for t in types],
+                                          k=1)[0]
+            cand = random.choice([u for u in present if u[1] == chosen_type])
+            frm, p_l, v_l, to = cand
+            color  = "white" if you else "black"
+            q = (f"My piece on __ could take the opponent's "
+                 f"{_piece_word[v_l]} on {chess.square_name(to)}.")
+            chat = {"chat": [
+                ["system", LATENTS_SYSPROMPT],
+                ["user", LATENTS_USERPROMPT.format(
+                    board=_convert_fen_to_visual(df_row["FEN"]),
+                    question=q,
+                    add_info="Fill the blank with the square of the only piece that makes the following statement true (e.g., 'e4')."
+                )],
+                ["assistant", chess.square_name(frm)],
+            ]}
+            info = {"cloze_piece_bucket": p_l}
+            return chat, info
+
+    # ---- generation failed ---------------------------------------------
+    return {"chat": []}, {"cloze_piece_bucket": "None"}
 
 
 # ==================================================
@@ -380,14 +670,24 @@ TASK_MAP = {
     "mat_bal":           _generate_mat_bal,
     "is_legal":          _generate_is_legal,
     "under_attack":      _generate_under_attack,
+    "mat_adv_value":     _generate_mat_adv_value,
+    "win_prob":          _generate_win_prob,
+    "mobility":          _generate_mobility,
+    "contrastive_ntp":   _generate_contrastive_ntp,
+    "cloze_capture":     _generate_cloze_capture,
 }
 
 PREFILL_TASK_MAP = {
     "is_check":          _prefill_is_check,
     "large_mat_adv":     _prefill_material_count,
     "mat_bal":           _prefill_material_count,
-    "is_legal":          _prefill_identity,
+    "is_legal":          _prefill_is_check,
     "under_attack":      _prefill_identity,
+    "mat_adv_value":     _prefill_mat_adv_value,
+    "win_prob":          _prefill_identity,
+    "mobility":          _prefill_identity,
+    "contrastive_ntp":   _prefill_identity,
+    "cloze_capture":     _prefill_identity,
 }
 
 
