@@ -178,7 +178,7 @@ class ResultsDict():
             total_errors = self.results['Error: Illegal Move'] + self.results['Error: Other'] 
             error_rate = self._safe_div(total_errors, self.results['Total Samples'])
             self.results['% Perfect'] = acc_perfect
-            self.results['Avg. %  Delta'] = avg_delta_percent
+            self.results['Avg. % Delta'] = avg_delta_percent
             self.results['Error Rate'] = error_rate
             if self.wandb_run:
                 self.wandb_run.log({
