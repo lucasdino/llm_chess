@@ -17,6 +17,7 @@ llm_chess/data/programmatic_explanations/data/
 runscripts/eval/
 runscripts/eval_sft/
 runscripts/eval_verl/
+runscripts/eval_ntp/
 runscripts/rejsampling/
 runscripts/sft/
 runscripts/verl/

@@ -6,7 +6,7 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "trainXL"
+GENERATION_TYPE = "eval"
 
 DATA_FILES = {
     "trainXL": "data/trainxl_1mm.csv",
@@ -17,16 +17,29 @@ DATA_FILES = {
 
 # Desired sample sizes per task
 TASK_SIZES = {
-    # "is_check": 1_000,
-    # "large_mat_adv": 1_000,
-    # "mat_bal": 1_000,
-    # "is_legal": 100_000,
-    "under_attack": 50_000,
-    # "mat_adv_value": 50_000,
-    "win_prob": 50_000,
-    # "mobility": 50_000,
-    # "contrastive_ntp": 20_000,
-    # "cloze_capture": 100_000,
+    "is_check": 256,
+    "large_mat_adv": 256,
+    "mat_bal": 256,
+    "is_legal": 256,
+    "under_attack": 256,
+    "mat_adv_value": 256,
+    "win_prob": 256,
+    "mobility": 256,
+    "contrastive_ntp": 256,
+    "cloze_capture": 256,
+}
+
+TASK_TO_FN_MAP = {
+    "is_check": "is-check",
+    "large_mat_adv": "large-mat-adv",
+    "mat_bal": "mat-bal",
+    "is_legal": "is-legal",
+    "under_attack": "under-attack",
+    "mat_adv_value": "mat-adv-value",
+    "win_prob": "win-prob",
+    "mobility": "mobility",
+    "contrastive_ntp": "contrastive-ntp",
+    "cloze_capture": "cloze-capture",
 }
 
 # Sampling criteria
@@ -145,5 +158,5 @@ if __name__ == "__main__":
         print(f"\n=== {task} ===")
         samples = generate(task, count, df)
         print_distributions(samples, BUCKET_COLUMNS[task])
-        outpath = Path(f"latents_train/latentsft_{GENERATION_TYPE}_{task}_{count}.jsonl")
+        outpath = Path(f"latents_train/{TASK_TO_FN_MAP[task]}_{GENERATION_TYPE}-ntp_{count}.jsonl")
         samples[f"{task}_chat"].to_json(outpath, orient="records", lines=True)

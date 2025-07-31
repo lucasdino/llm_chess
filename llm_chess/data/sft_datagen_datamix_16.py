@@ -31,6 +31,7 @@ class DatasetSource:
     def load(self):
         datasets = [load_dataset("json", data_files=fp, split="train") for fp in self.file_paths]
         return concatenate_datasets(datasets) if len(datasets) > 1 else datasets[0]
+
 sources = [
     DatasetSource(
         name=cfg["name"],

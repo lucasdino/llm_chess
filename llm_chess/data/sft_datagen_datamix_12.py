@@ -9,14 +9,25 @@ from llm_chess.prompts.chat_to_prompt import LlamaFactoryChatProcessor
 
 
 # Main args to adjust
-MAX_SAMPLES = 50000
+# MAX_SAMPLES = 50000
+# LLAMA_VERSION = "qwen25"
+# OUTPUT_FOLDER = "llm_chess/data/"
+# DATA_FOLDER = "llm_chess/data/cleaned/train_data"
+# DATASET_CONFIG = [
+#     {
+#         "name": "latent_sft_data",
+#         "files": ["latentsft_train_is_check_10000.jsonl", "latentsft_train_is_legal_50000.jsonl", "latentsft_train_under_attack_25000.jsonl"],
+#         "weight": 1.0
+#     }
+# ]
+MAX_SAMPLES = 500
 LLAMA_VERSION = "qwen25"
 OUTPUT_FOLDER = "llm_chess/data/"
 DATA_FOLDER = "llm_chess/data/cleaned/train_data"
 DATASET_CONFIG = [
     {
         "name": "latent_sft_data",
-        "files": ["latentsft_train_is_check_10000.jsonl", "latentsft_train_is_legal_50000.jsonl", "latentsft_train_under_attack_25000.jsonl"],
+        "files": ["latentsft_trainXL_mobility_50000.jsonl"],
         "weight": 1.0
     }
 ]

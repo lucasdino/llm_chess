@@ -1,3 +1,6 @@
+import re
+import math
+
 from .exceptions import ParseException, IllegalMoveException
 from .parsing import extract_solution, coerce_response
 
@@ -81,6 +84,32 @@ class ResultsDict():
                 else:
                     raise IllegalMoveException("Predicted move is not in the legal moves.")
         
+            elif self.task_type == "ntp_yes_no":
+                answer = ground_truth['answer']
+                predicted_answer = model_response
+                if not predicted_answer in ["Yes", "No"]:
+                    raise IllegalMoveException("Output is not a 'Yes' or 'No'.")
+                self.results["Total Correct"] += predicted_answer == answer
+
+            elif self.task_type == "ntp_predict_num":
+                try:
+                    num_pred_ans = float(model_response)
+                    num_ans = float(ground_truth['answer'])
+                    delta_percent = self._safe_div((num_pred_ans - num_ans), num_ans, default_div=100)
+                    self.results["Cumulative % Delta"] += delta_percent
+                    self.results["Total Legal"] += 1
+                    if math.isclose(num_pred_ans, num_ans):
+                        self.results["Total Correct"] += 1
+                except:
+                    raise IllegalMoveException("Output is not able to be converted to an int.")
+                
+            elif self.task_type == "ntp_predict_move":
+                answer = ground_truth['answer']
+                predicted_answer = model_response
+                if not re.fullmatch(r"[a-h][1-8]", predicted_answer):
+                    raise IllegalMoveException("Output is not a correct square.")
+                self.results["Total Correct"] += predicted_answer == answer
+
         # Exception handling to log various errors     
         except Exception as e:
             if isinstance(e, ParseException):
@@ -131,6 +160,45 @@ class ResultsDict():
                     f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
                 })
 
+        elif self.task_type == "ntp_yes_no":
+            correct_acc = self._safe_div(self.results["Total Correct"], self.results["Total Samples"])
+            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Other'] 
+            error_rate = self._safe_div(total_errors, self.results['Total Samples'])
+            self.results['% Correct'] = correct_acc
+            self.results['Error Rate'] = error_rate
+            if self.wandb_run:
+                self.wandb_run.log({
+                    f"{run_type} NTP - {self.trimmed_filename} / % Correct": self.results['% Correct'],
+                    f"{run_type} NTP - {self.trimmed_filename} / Error Rate": self.results['Error Rate'],
+                    })
+
+        elif self.task_type == "ntp_predict_num":
+            acc_perfect = self._safe_div(self.results["Total Correct"], self.results["Total Samples"])
+            avg_delta_percent = self._safe_div(self.results["Cumulative % Delta"], self.results["Total Legal"])
+            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Other'] 
+            error_rate = self._safe_div(total_errors, self.results['Total Samples'])
+            self.results['% Perfect'] = acc_perfect
+            self.results['Avg. %  Delta'] = avg_delta_percent
+            self.results['Error Rate'] = error_rate
+            if self.wandb_run:
+                self.wandb_run.log({
+                    f"{run_type} NTP - {self.trimmed_filename} / Avg. % Delta": self.results['Avg. % Delta'],
+                    f"{run_type} NTP - {self.trimmed_filename} / % Perfect": self.results['% Perfect'],
+                    f"{run_type} NTP - {self.trimmed_filename} / Error Rate": self.results['Error Rate'],
+                    })
+
+        elif self.task_type == "ntp_predict_move":
+            correct_acc = self._safe_div(self.results["Total Correct"], self.results["Total Samples"])
+            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Other'] 
+            error_rate = self._safe_div(total_errors, self.results['Total Samples'])
+            self.results['% Correct'] = correct_acc
+            self.results['Error Rate'] = error_rate
+            if self.wandb_run:
+                self.wandb_run.log({
+                    f"{run_type} NTP - {self.trimmed_filename} / % Correct": self.results['% Correct'],
+                    f"{run_type} NTP - {self.trimmed_filename} / Error Rate": self.results['Error Rate'],
+                    })
+
         return self.results, self.correct_responses
 
     # =================================================
@@ -167,11 +235,41 @@ class ResultsDict():
                 "Error: Illegal Move": 0,
                 "Error: Other": 0,
             }
+        elif self.task_type == "ntp_yes_no":
+            return {
+                "Filename": self.filename,
+                "Total Samples": 0,
+                "Total Correct": 0,
+                "Error: Illegal Move": 0,
+                "Error: Other": 0
+            }
+        elif self.task_type == "ntp_predict_num":
+            return {
+                "Filename": self.filename,
+                "Total Samples": 0,
+                "Total Correct": 0,
+                "Total Legal": 0,
+                "Cumulative % Delta": 0,
+                "Error: Illegal Move": 0,
+                "Error: Other": 0
+            }
+        elif self.task_type == "ntp_predict_move":
+            return {
+                "Filename": self.filename,
+                "Total Samples": 0,
+                "Total Correct": 0,
+                "Error: Illegal Move": 0,
+                "Error: Other": 0
+            }
         else:
             raise ValueError(f"Undefined task type: {self.task_type}")
 
-    def _safe_div(self, x, y, default=0): 
-        return x / y if y else default
+    def _safe_div(self, x, y, default=0, default_div=None):
+        if default_div is not None:
+            # Use default_div if y is "close to zero"
+            return x / y if not math.isclose(y, 0) else x / default_div
+        else:
+            return x / y if not math.isclose(y, 0) else default
     
 
 
@@ -406,4 +504,3 @@ class DifficultyResultsDict():
 
     def _safe_div(self, x, y, default=0): 
         return x / y if y else default
-    

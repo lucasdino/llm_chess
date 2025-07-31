@@ -13,6 +13,16 @@ TASK_MAP = {
     'predictmove': "predict_singlemove",
     'blunder_explanations': "synthetic_generation",
     'good_move_explanations': "synthetic_generation",
+    'cloze-capture': "ntp_predict_move",
+    'contrastive-ntp': "ntp_predict_move",
+    'is-check': "ntp_yes_no",
+    'is-legal': "ntp_yes_no",
+    'large-mat-adv': "ntp_yes_no",
+    'mat-adv-value': "ntp_predict_num",
+    'mat-bal': "ntp_yes_no",
+    'mobility': "ntp_predict_num",
+    'under-attack': "ntp_yes_no",
+    'win-prob': "ntp_predict_num",
 }
 
 RUNTYPE_SYSPROMPT_MAPPING = {
