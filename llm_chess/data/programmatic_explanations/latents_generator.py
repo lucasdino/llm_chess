@@ -121,6 +121,18 @@ def _prefill_identity(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _prefill_best_move_n_pieces(df):
+
+    def count_pieces(fen: str) -> int:
+        """Return number of pieces on the board for a FEN string."""
+        board = fen.split()[0]
+        return sum(ch.isalpha() for ch in board)
+    
+    df = df.copy()
+    df["piece_count"] = df["FEN"].apply(count_pieces)
+    return df
+
+
 # ==================================================
 # Generator Helpers / Functions
 # ==================================================
@@ -661,6 +673,29 @@ def _generate_cloze_capture(df_row: pd.Series, cfg: Dict):
     return {"chat": []}, {"cloze_piece_bucket": "None"}
 
 
+def _generate_best_move_n_pieces(df_row: pd.Series, cfg: Dict):
+    """
+    Build a chat example that asks for the best move (ground-truth is df_row['Move']).
+    Assumes df_row already has 'piece_count' if you want to bucket or filter on it.
+    """
+    question  = "What is the best move for the side to play?"
+    add_info  = ("Reply with just the move in UCI notation "
+                 "(e.g. `e2e4`). Do not output anything else.")
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question=question,
+                add_info=add_info
+            )],
+            ["assistant", df_row["Move"]],      # the ground-truth answer
+        ]
+    }
+    info = {"piece_count": df_row["piece_count"]}  # keep for later filtering/bucketing
+    return chat, info
+
+
 # ==================================================
 # Router
 # ==================================================
@@ -675,6 +710,11 @@ TASK_MAP = {
     "mobility":          _generate_mobility,
     "contrastive_ntp":   _generate_contrastive_ntp,
     "cloze_capture":     _generate_cloze_capture,
+    "best_move_le8":     _generate_best_move_n_pieces,
+    "best_move_le9":     _generate_best_move_n_pieces,
+    "best_move_le10":    _generate_best_move_n_pieces,
+    "best_move_le11":    _generate_best_move_n_pieces,
+    "best_move_le12":    _generate_best_move_n_pieces,
 }
 
 PREFILL_TASK_MAP = {
@@ -688,6 +728,11 @@ PREFILL_TASK_MAP = {
     "mobility":          _prefill_identity,
     "contrastive_ntp":   _prefill_identity,
     "cloze_capture":     _prefill_identity,
+    "best_move_le8":     _prefill_best_move_n_pieces,
+    "best_move_le9":     _prefill_best_move_n_pieces,
+    "best_move_le10":    _prefill_best_move_n_pieces,
+    "best_move_le11":    _prefill_best_move_n_pieces,
+    "best_move_le12":    _prefill_best_move_n_pieces,
 }
 
 

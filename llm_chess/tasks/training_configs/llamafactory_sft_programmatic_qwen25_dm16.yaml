@@ -34,7 +34,7 @@ ddp_timeout: 180000000
 
 ### reporting
 report_to: wandb
-run_name: sft-qwen25-7b-datamix16
+run_name: sft-qwen25-7b-datamix101
 
 ### eval
 val_size: 0.005
