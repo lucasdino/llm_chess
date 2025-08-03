@@ -661,6 +661,26 @@ def _generate_cloze_capture(df_row: pd.Series, cfg: Dict):
     return {"chat": []}, {"cloze_piece_bucket": "None"}
 
 
+def _generate_predict_bestmove(df_row: pd.Series, _cfg: Dict):
+    """
+    Dataset columns:  FEN • Move   (Move = best move in UCI)
+    Prompt: ask for the best move, expecting UCI only.
+    """
+    move = df_row["Move"]
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question="What is the best move?",
+                add_info="Respond immediately with just the move in UCI notation (e.g. 'e2e4') — nothing else."
+            )],
+            ["assistant", move],
+        ]
+    }
+    return chat, None
+
+
 # ==================================================
 # Router
 # ==================================================
@@ -675,6 +695,7 @@ TASK_MAP = {
     "mobility":          _generate_mobility,
     "contrastive_ntp":   _generate_contrastive_ntp,
     "cloze_capture":     _generate_cloze_capture,
+    "predict_bestmove":  _generate_predict_bestmove,
 }
 
 PREFILL_TASK_MAP = {
@@ -688,6 +709,7 @@ PREFILL_TASK_MAP = {
     "mobility":          _prefill_identity,
     "contrastive_ntp":   _prefill_identity,
     "cloze_capture":     _prefill_identity,
+    "predict_bestmove":  _prefill_identity,
 }
 
 

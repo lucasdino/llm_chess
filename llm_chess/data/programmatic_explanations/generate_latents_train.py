@@ -6,10 +6,11 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "eval"
+GENERATION_TYPE = "trainBC"
 
 DATA_FILES = {
     "trainXL": "data/trainxl_1mm.csv",
+    "trainBC": "data/deepmind_behavioral_cloning_train_1mm.csv",
     "train": "data/train_50k.csv",
     "trainSmall": "data/train_20k.csv",
     "eval": "data/evals_1k.csv",
@@ -17,16 +18,17 @@ DATA_FILES = {
 
 # Desired sample sizes per task
 TASK_SIZES = {
-    "is_check": 256,
-    "large_mat_adv": 256,
-    "mat_bal": 256,
-    "is_legal": 256,
-    "under_attack": 256,
-    "mat_adv_value": 256,
-    "win_prob": 256,
-    "mobility": 256,
-    "contrastive_ntp": 256,
-    "cloze_capture": 256,
+    # "is_check": 256,
+    # "large_mat_adv": 256,
+    # "mat_bal": 256,
+    # "is_legal": 256,
+    # "under_attack": 256,
+    # "mat_adv_value": 256,
+    # "win_prob": 256,
+    # "mobility": 256,
+    # "contrastive_ntp": 256,
+    # "cloze_capture": 256,
+    "predict_bestmove": 500_000,
 }
 
 TASK_TO_FN_MAP = {
@@ -40,6 +42,7 @@ TASK_TO_FN_MAP = {
     "mobility": "mobility",
     "contrastive_ntp": "contrastive-ntp",
     "cloze_capture": "cloze-capture",
+    "predict_bestmove": "bestmove",
 }
 
 # Sampling criteria
@@ -79,6 +82,7 @@ GEN_CONFIG = {
     "cloze_capture": {
         "piece_freq": {"p": 1, "n": 3, "b": 3, "r": 3, "q": 5, "k": 1},
     },
+    "predict_bestmove": None,
 }
 
 TASK_CRITERIA_EXTRA = {
@@ -116,7 +120,8 @@ TASK_CRITERIA_EXTRA = {
     }, 
     "cloze_capture": {
         "cloze_piece": {"p": 0.1, "b": 0.2, "n": 0.2, "r": 0.2, "q": 0.2, "k": 0.1, "None": 0}
-    }
+    },
+    "predict_bestmove": {},
 }
 
 BUCKET_COLUMNS = {
@@ -130,6 +135,7 @@ BUCKET_COLUMNS = {
     "mobility": ["movecount_bucket", "player_bucket", "mobility_piece_bucket", "mobility_moves_bucket"],
     "contrastive_ntp": ["movecount_bucket", "player_bucket", "contrastive_ntp_piece_bucket", "contrastive_ntp_bucket"],
     "cloze_capture": ["movecount_bucket", "player_bucket", "cloze_piece_bucket"],
+    "predict_bestmove": ["movecount_bucket", "player_bucket"],
 }
 
 
