@@ -6,22 +6,43 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "trainXL-deepmind"
+GENERATION_TYPE = "trainBC"
 
 DATA_FILES = {
     "trainXL": "data/trainxl_1mm.csv",
+    "trainBC": "data/deepmind_behavioral_cloning_train_1mm.csv",
     "train": "data/train_50k.csv",
     "trainSmall": "data/train_20k.csv",
     "eval": "data/evals_1k.csv",
-    "trainXL-deepmind": "data/deepmind_behavioral_cloning_train_1mm.csv",
 }
 
 # Desired sample sizes per task
 TASK_SIZES = {
-    "best_move_le12":  50000,
+    # "is_check": 256,
+    # "large_mat_adv": 256,
+    # "mat_bal": 256,
+    # "is_legal": 256,
+    # "under_attack": 256,
+    # "mat_adv_value": 256,
+    # "win_prob": 256,
+    # "mobility": 256,
+    # "contrastive_ntp": 256,
+    # "cloze_capture": 256,
+    "best_move_le12": 50000,
 }
 
 TASK_TO_FN_MAP = {
+    "is_check": "is-check",
+    "large_mat_adv": "large-mat-adv",
+    "mat_bal": "mat-bal",
+    "is_legal": "is-legal",
+    "under_attack": "under-attack",
+    "mat_adv_value": "mat-adv-value",
+    "win_prob": "win-prob",
+    "mobility": "mobility",
+    "contrastive_ntp": "contrastive-ntp",
+    "cloze_capture": "cloze-capture",
+    "predict_bestmove": "bestmove",
     "best_move_le12": "best-move-le12",
 }
 
@@ -67,6 +88,7 @@ GEN_CONFIG = {
     "best_move_le10": None,
     "best_move_le11": None,
     "best_move_le12": None,
+    "predict_bestmove": None,
 }
 
 TASK_CRITERIA_EXTRA = {
@@ -109,7 +131,8 @@ TASK_CRITERIA_EXTRA = {
     "best_move_le9": {},
     "best_move_le10": {},
     "best_move_le11": {},
-    "best_move_le12": {}
+    "best_move_le12": {},
+    "predict_bestmove": {},
 }
 
 BUCKET_COLUMNS = {
@@ -128,6 +151,7 @@ BUCKET_COLUMNS = {
     "best_move_le10": ["piece_count"],
     "best_move_le11": ["piece_count"],
     "best_move_le12": ["piece_count"],
+    "predict_bestmove": ["movecount_bucket", "player_bucket"],
 }
 
 

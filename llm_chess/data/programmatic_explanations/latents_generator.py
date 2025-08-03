@@ -681,6 +681,7 @@ def _generate_best_move_n_pieces(df_row: pd.Series, cfg: Dict):
     question  = "What is the best move for the side to play?"
     add_info  = ("Reply with just the move in UCI notation "
                  "(e.g. `e2e4`). Do not output anything else.")
+    move = df_row["Move"]
     chat = {
         "chat": [
             ["system", LATENTS_SYSPROMPT],
@@ -694,6 +695,26 @@ def _generate_best_move_n_pieces(df_row: pd.Series, cfg: Dict):
     }
     info = {"piece_count": df_row["piece_count"]}  # keep for later filtering/bucketing
     return chat, info
+
+
+def _generate_predict_bestmove(df_row: pd.Series, _cfg: Dict):
+    """
+    Dataset columns:  FEN • Move   (Move = best move in UCI)
+    Prompt: ask for the best move, expecting UCI only.
+    """
+    move = df_row["Move"]
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question="What is the best move?",
+                add_info="Respond immediately with just the move in UCI notation (e.g. 'e2e4') — nothing else."
+            )],
+            ["assistant", move],
+        ]
+    }
+    return chat, None
 
 
 # ==================================================
@@ -715,6 +736,7 @@ TASK_MAP = {
     "best_move_le10":    _generate_best_move_n_pieces,
     "best_move_le11":    _generate_best_move_n_pieces,
     "best_move_le12":    _generate_best_move_n_pieces,
+    "predict_bestmove":  _generate_predict_bestmove,
 }
 
 PREFILL_TASK_MAP = {
@@ -733,6 +755,7 @@ PREFILL_TASK_MAP = {
     "best_move_le10":    _prefill_best_move_n_pieces,
     "best_move_le11":    _prefill_best_move_n_pieces,
     "best_move_le12":    _prefill_best_move_n_pieces,
+    "predict_bestmove":  _prefill_identity,
 }
 
 
