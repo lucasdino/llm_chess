@@ -28,7 +28,7 @@ TASK_SIZES = {
     # "mobility": 256,
     # "contrastive_ntp": 256,
     # "cloze_capture": 256,
-    "predict_bestmove": 500_000,
+    "best_move_le12": 50000,
 }
 
 TASK_TO_FN_MAP = {
@@ -43,6 +43,7 @@ TASK_TO_FN_MAP = {
     "contrastive_ntp": "contrastive-ntp",
     "cloze_capture": "cloze-capture",
     "predict_bestmove": "bestmove",
+    "best_move_le12": "best-move-le12",
 }
 
 # Sampling criteria
@@ -82,6 +83,11 @@ GEN_CONFIG = {
     "cloze_capture": {
         "piece_freq": {"p": 1, "n": 3, "b": 3, "r": 3, "q": 5, "k": 1},
     },
+    "best_move_le8": None,
+    "best_move_le9": None,
+    "best_move_le10": None,
+    "best_move_le11": None,
+    "best_move_le12": None,
     "predict_bestmove": None,
 }
 
@@ -121,6 +127,11 @@ TASK_CRITERIA_EXTRA = {
     "cloze_capture": {
         "cloze_piece": {"p": 0.1, "b": 0.2, "n": 0.2, "r": 0.2, "q": 0.2, "k": 0.1, "None": 0}
     },
+    "best_move_le8": {},
+    "best_move_le9": {},
+    "best_move_le10": {},
+    "best_move_le11": {},
+    "best_move_le12": {},
     "predict_bestmove": {},
 }
 
@@ -135,19 +146,50 @@ BUCKET_COLUMNS = {
     "mobility": ["movecount_bucket", "player_bucket", "mobility_piece_bucket", "mobility_moves_bucket"],
     "contrastive_ntp": ["movecount_bucket", "player_bucket", "contrastive_ntp_piece_bucket", "contrastive_ntp_bucket"],
     "cloze_capture": ["movecount_bucket", "player_bucket", "cloze_piece_bucket"],
+    "best_move_le8": ["piece_count"],
+    "best_move_le9": ["piece_count"],
+    "best_move_le10": ["piece_count"],
+    "best_move_le11": ["piece_count"],
+    "best_move_le12": ["piece_count"],
     "predict_bestmove": ["movecount_bucket", "player_bucket"],
 }
 
 
+def _parse_max_pieces(task: str) -> int | None:
+    if task.startswith("best_move_le"):
+        try:
+            return int(task.split("best_move_le")[1])
+        except ValueError:
+            pass
+    return None
+
+
 def generate(task, count, base_df):
-    cfg = GEN_CONFIG[task]
+    # ---------- build chats & auxiliary columns -----------------------
+    cfg = GEN_CONFIG.get(task)                 # .get() avoids KeyError
     latents_df = latents_generator(task, base_df, cfg) if cfg else latents_generator(task, base_df)
-    sm = SamplingManager(latents_df, BASE_CRITERIA)
-    crit = {**BASE_CRITERIA, **TASK_CRITERIA_EXTRA[task]}
-    out = pd.DataFrame()
+
+    # ---------- OPTIONAL filter for "best_move_leN" -------------------
+    max_pieces = _parse_max_pieces(task)       # None for all other tasks
+    if max_pieces is not None:
+        print(f"Filtering for max {max_pieces} pieces in task '{task}'")
+        print("NOT USING BASE_CRITERIA FOR THIS TASK")
+        latents_df = latents_df[latents_df["piece_count"] <= max_pieces]
+
+        # skip movecount / player balancing for these low-piece datasets
+        if len(latents_df) < count:
+            raise ValueError(f"Only {len(latents_df)} rows ≤ {max_pieces} pieces; "
+                             f"can't satisfy count={count}.")
+        return latents_df.sample(n=count, random_state=0).reset_index(drop=True)
+
+    # ---------- original path for legacy tasks ------------------------
+    sm   = SamplingManager(latents_df, BASE_CRITERIA)
+    crit = {**BASE_CRITERIA, **TASK_CRITERIA_EXTRA.get(task, {})}
+    out  = pd.DataFrame()
     while len(out) < count:
         out = pd.concat([out, sm.get_samples(count - len(out), criteria=crit)], ignore_index=True)
     return out.iloc[:count]
+
 
 
 def print_distributions(df, cols):
