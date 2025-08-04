@@ -84,6 +84,18 @@ class ResultsDict():
                 else:
                     raise IllegalMoveException("Predicted move is not in the legal moves.")
         
+            elif self.task_type == "ntp_playmove":
+                answer = ground_truth
+                predicted_answer = model_response   # Since just asking it to produce a move directly (no reasoning)
+                sorted_answers = sorted(answer.items(), key=lambda x: x[1])
+
+                if predicted_answer in answer:
+                    self.results["Legal Moves Provided"] += 1
+                    predicted_move_idx = next(i for i, (move, _) in enumerate(sorted_answers) if move == predicted_answer)
+                    self.results["Cumulative Rank of Moves Provided"] += predicted_move_idx/len(sorted_answers)
+                else:
+                    raise IllegalMoveException("Predicted move is not in the legal moves.")
+
             elif self.task_type == "ntp_yes_no":
                 answer = ground_truth['answer']
                 predicted_answer = model_response
@@ -148,6 +160,19 @@ class ResultsDict():
                 })
 
         elif self.task_type == "predict_singlemove":
+            legal = self.results["Legal Moves Provided"]
+            total = self.results["Total Samples"]
+            self.results["Avg. Rank of Move Provided"] = self._safe_div(self.results["Cumulative Rank of Moves Provided"], legal)
+            self.results["Percent Legal Moves Provided"] = self._safe_div(legal, total)
+            self.results["Error Rate"] = self._safe_div(self.results['Error: Parsing'] + self.results['Error: Illegal Move'] + self.results['Error: Other'], total)
+            if self.wandb_run:
+                self.wandb_run.log({
+                    f"{run_type} - {self.trimmed_filename}/Avg. Rank of Move Provided": self.results["Avg. Rank of Move Provided"],
+                    f"{run_type} - {self.trimmed_filename}/Percent Legal Moves Provided": self.results["Percent Legal Moves Provided"],
+                    f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
+                })
+
+        elif self.task_type == "ntp_playmove":
             legal = self.results["Legal Moves Provided"]
             total = self.results["Total Samples"]
             self.results["Avg. Rank of Move Provided"] = self._safe_div(self.results["Cumulative Rank of Moves Provided"], legal)
@@ -226,6 +251,16 @@ class ResultsDict():
                 "Error: Other": 0,
             }
         elif self.task_type == "predict_singlemove":
+            return {
+                "Filename": self.filename,
+                "Total Samples": 0,
+                "Legal Moves Provided": 0,
+                "Cumulative Rank of Moves Provided": 0,
+                "Error: Parsing": 0,
+                "Error: Illegal Move": 0,
+                "Error: Other": 0,
+            }
+        elif self.task_type == "ntp_playmove":
             return {
                 "Filename": self.filename,
                 "Total Samples": 0,

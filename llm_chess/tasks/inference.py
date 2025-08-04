@@ -23,6 +23,7 @@ TASK_MAP = {
     'mobility': "ntp_predict_num",
     'under-attack': "ntp_yes_no",
     'win-prob': "ntp_predict_num",
+    'ntp-playmove': "ntp_playmove",
 }
 
 RUNTYPE_SYSPROMPT_MAPPING = {
