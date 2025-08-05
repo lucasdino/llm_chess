@@ -71,6 +71,7 @@ def parse_args():
     parser.add_argument("--min_p", type=float, default=0.02)
     parser.add_argument("--top_k", type=int, default=40)
     parser.add_argument("--repetition_penalty", type=float, default=1.1)
+    parser.add_argument("--reasoning_effort", type=str, default=None, help="Optional reasoning effort hint passed to system prompt.")
 
     # Other hyperparams
     parser.add_argument("--parser_max_reprompt", type=int, default=1)
@@ -95,7 +96,8 @@ def main():
             "top_p": args.top_p,
             "min_p": args.min_p,
             "top_k": args.top_k,
-            "repetition_penalty": args.repetition_penalty
+            "repetition_penalty": args.repetition_penalty,
+            **({"reasoning_effort": args.reasoning_effort} if args.reasoning_effort else {})
         }
     )
 
