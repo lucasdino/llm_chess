@@ -9,7 +9,7 @@ from llm_chess.prompts.chat_to_prompt import LlamaFactoryChatProcessor
 
 
 # Main args to adjust
-MAX_SAMPLES = 1_500_000
+MAX_SAMPLES = 750_000
 LLAMA_VERSION = "qwen25"
 OUTPUT_FOLDER = "llm_chess/data/"
 DATA_FOLDER = "llm_chess/data/cleaned/train_data"
