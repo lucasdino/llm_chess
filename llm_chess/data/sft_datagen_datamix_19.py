@@ -9,7 +9,7 @@ from llm_chess.prompts.chat_to_prompt import LlamaFactoryChatProcessor
 
 
 # Main args to adjust
-MAX_SAMPLES = 500_000
+MAX_SAMPLES = 1_500_000
 LLAMA_VERSION = "qwen25"
 OUTPUT_FOLDER = "llm_chess/data/"
 DATA_FOLDER = "llm_chess/data/cleaned/train_data"
@@ -17,27 +17,22 @@ DATASET_CONFIG = [
     {
         "name": "magpie",
         "files": ["magpieclean_20000.jsonl"],
-        "weight": 0.02
-    },
-    {
-        "name": "chess_explainer",
-        "files": ["combined_chessexplainer_5350.jsonl"],
         "weight": 0.01
     },
     {
-        "name": "rejsampling",
-        "files": ["rejsampling_predictmove_balanced_5775.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
-        "weight": 0.018
+        "name": "synthetic",
+        "files": ["combined_chessexplainer_5350.jsonl", "rejsampling_predictmove_balanced_5775.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_legalmoves_balanced_604.jsonl", "syntheticmoves_blunders_1000.jsonl", "syntheticmoves_goodmoves_300.jsonl"],
+        "weight": 0.01
     },
     {
-        "name": "synthetic_moves",
-        "files": ["syntheticmoves_blunders_1000.jsonl", "syntheticmoves_goodmoves_300.jsonl"],
-        "weight": 0.002
+        "name": "latent_sft_simple",
+        "files": ["latentsft_train_contrastive_ntp_87438.jsonl", "latentsft_trainXL_cloze_capture_100000.jsonl", "latentsft_trainXL_is_legal_100000.jsonl", "latentsft_trainXL_mat_adv_value_50000.jsonl", "latentsft_trainXL_mobility_50000.jsonl", "latentsft_trainXL_under_attack_50000.jsonl", "latentsft_trainXL_win_prob_50000.jsonl"],
+        "weight": 0.32
     },
     {
-        "name": "latent_sft_data",
-        "files": ["latentsft_trainBC_bestmove_100k_p1.jsonl", "latentsft_trainBC_bestmove_100k_p2.jsonl", "latentsft_trainBC_bestmove_100k_p3.jsonl", "latentsft_trainBC_bestmove_100k_p4.jsonl", "latentsft_trainBC_bestmove_100k_p5.jsonl"],
-        "weight": 0.95
+        "name": "latent_sft_bestmove",
+        "files": ["latentsft_trainBC_bestmove_100k_p1.jsonl", "latentsft_trainBC_bestmove_100k_p2.jsonl", "latentsft_trainBC_bestmove_100k_p3.jsonl", "latentsft_trainBC_bestmove_100k_p4.jsonl", "latentsft_trainBC_bestmove_100k_p5.jsonl", "latentsft_trainBC_bestmove_100k_p6.jsonl", "latentsft_trainBC_bestmove_100k_p7.jsonl", "latentsft_trainBC_bestmove_100k_p8.jsonl", "latentsft_trainBC_bestmove_100k_p9.jsonl", "latentsft_trainBC_bestmove_100k_p10.jsonl"],
+        "weight": 0.66
     }
 ]
 
