@@ -6,11 +6,12 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "trainBC"
+GENERATION_TYPE = "trainBC_5mm"
 
 DATA_FILES = {
     "trainXL": "data/trainxl_1mm.csv",
     "trainBC": "data/deepmind_behavioral_cloning_train_1mm.csv",
+    "trainBC_5mm": "data/deepmind_behavioral_cloning_train_5mm.csv",
     "train": "data/train_50k.csv",
     "trainSmall": "data/train_20k.csv",
     "eval": "data/evals_1k.csv",
@@ -28,7 +29,8 @@ TASK_SIZES = {
     # "mobility": 256,
     # "contrastive_ntp": 256,
     # "cloze_capture": 256,
-    "best_move_le12": 50000,
+    "predict_bestmove": 1_000_000,
+    # "best_move_le12": 50000,
 }
 
 TASK_TO_FN_MAP = {
