@@ -1,8 +1,10 @@
 name: llm_chess
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python=3.11
+  - pytorch=2.7.1
   - numpy
   - pandas
   - ipykernel
@@ -22,7 +24,5 @@ dependencies:
       - pyproject-hooks==1.2.0
       - webencodings==0.5.1
       - wandb==0.19.9
-      - torch
       - transformers
       - datasets
-      - deepspeed
