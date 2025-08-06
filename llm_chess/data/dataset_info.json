@@ -1,0 +1,10 @@
+{
+  "llmchess_programmatic": {
+    "file_name": "llamafactory_programmatic_169086.json",
+    "columns": {
+      "system": "system",
+      "prompt": "user",
+      "response": "assistant"
+    }
+  }
+}

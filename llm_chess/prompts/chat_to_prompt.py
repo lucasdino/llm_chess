@@ -137,3 +137,32 @@ class LlamaFactoryChatProcessor:
             raise ValueError(f"System / User / Assistant data is none / non-existant.")
         
         return sys, usr, ast
+    
+
+# ===============================================
+# Simple tokenizer wrapper to return the number of tokens 
+# in a piece of text
+# ===============================================
+class TokenizerCounter:
+    """
+    Load the HF tokenizer from ./tokenizer_config/<tokenizer_version> and
+    return exact token counts for raw text.
+
+    Usage:
+        tc = TokenizerCounter("qwen25")
+        n = tc.count("some assistant text")                 # no special tokens
+        n_with_specials = tc.count("text", add_special_tokens=True)
+    """
+    def __init__(self, tokenizer_version: str):
+        cfg_dir = Path(__file__).resolve().parent / "tokenizer_config" / tokenizer_version
+        if not cfg_dir.exists():
+            raise FileNotFoundError(
+                f"Tokenizer files for “{tokenizer_version}” not found in {cfg_dir}"
+            )
+        self.tokenizer = AutoTokenizer.from_pretrained(cfg_dir, trust_remote_code=True)
+
+    def count(self, text: str | None, add_special_tokens: bool = False) -> int:
+        if not text:
+            return 0
+        # Use encode for a fast length; identical to len(tokenizer(text).input_ids)
+        return len(self.tokenizer.encode(text, add_special_tokens=add_special_tokens))
