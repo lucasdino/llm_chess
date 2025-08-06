@@ -11,7 +11,7 @@ build_verl_dataset.ps1
 archive/
 local_testing/
 llm_chess/data/model_outputs/
-llm_chess/data/training_pqt/
+llm_chess/data/preprocessed_train_data/
 llm_chess/data/programmatic_explanations/data/
 
 # Excessively large files
