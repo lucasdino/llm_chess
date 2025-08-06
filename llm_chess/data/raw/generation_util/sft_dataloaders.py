@@ -6,7 +6,6 @@ from datasets import load_dataset, concatenate_datasets, Dataset
 
 from llm_chess.prompts.chat_to_prompt import LlamaFactoryChatProcessor, TokenizerCounter
 
-
 # ------------------------------ config structs ------------------------------
 
 @dataclass(frozen=True)
@@ -20,7 +19,6 @@ class DatasetSource:
         dataset = concatenate_datasets(dsets) if len(dsets) > 1 else dsets[0]
         return dataset
 
-
 # ------------------------------ helpers ------------------------------------
 
 def _process_examples(examples: Iterable[dict], chat_processor: LlamaFactoryChatProcessor) -> List[Dict[str, str]]:
@@ -30,7 +28,6 @@ def _process_examples(examples: Iterable[dict], chat_processor: LlamaFactoryChat
         sample = {"system": sys, "user": usr, "assistant": ast}
         out.append(sample)
     return out
-
 
 # ------------------------------ loader 1: weighted by *samples* ------------
 
@@ -73,19 +70,18 @@ def load_weighted_by_samples(
     rng.shuffle(picked_examples)
     return _process_examples(picked_examples[:total], chat_processor)
 
-
 # ------------------------------ loader 2: weighted by *assistant tokens* ----
 
 def load_weighted_by_tokens(
     sources: List[DatasetSource],
-    max_samples: int,
+    max_tokens: int,
     token_counter: TokenizerCounter,
     rng: random.Random | None = None,
 ) -> List[Dict[str, str]]:
     """
     Greedy proportional-fair scheduler on *assistant token mass*:
       at each step pick i = argmin_i (tokens_i / weight_i), add one example from i.
-    Stop at max_samples or when any positive-weight bucket depletes (can’t keep proportions).
+    Stop at max_tokens or when any positive-weight bucket depletes (can’t keep proportions).
     """
     rng = rng or random.Random()
     chat_processor = LlamaFactoryChatProcessor()
@@ -118,10 +114,11 @@ def load_weighted_by_tokens(
 
     # Running tallies
     token_tally = [0] * len(sources)
-    result_indices: List[Tuple[int, int]] = []  # (dataset_id, row_index)
+    total_tokens = 0
+    result_indices: List[Tuple[int, int, int]] = []  # (dataset_id, row_index, tlen)
 
     # Main loop
-    while len(result_indices) < max_samples:
+    while total_tokens < max_tokens:
         # Choose dataset with minimal (tokens / weight). Datasets with w==0 are never chosen.
         best_i = None
         best_score = None
@@ -141,14 +138,20 @@ def load_weighted_by_tokens(
         if best_i is None:
             break  # cannot keep proportions
 
-        # Take one example from the chosen dataset
         idx, tlen = pools[best_i].pop()  # pop is O(1)
         token_tally[best_i] += tlen
-        result_indices.append((best_i, idx))
+        total_tokens += tlen
+        result_indices.append((best_i, idx, tlen))
+
+    # If the last example pushes us over, drop it (to avoid significant overshoot)
+    if result_indices and total_tokens > max_tokens:
+        best_i, idx, tlen = result_indices.pop()
+        token_tally[best_i] -= tlen
+        total_tokens -= tlen
 
     # Materialize and process chats
     final_examples = []
-    for ds_id, row_idx in result_indices:
+    for ds_id, row_idx, _ in result_indices:
         final_examples.append(loaded[ds_id][row_idx])
 
     rng.shuffle(final_examples)

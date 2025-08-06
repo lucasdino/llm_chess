@@ -6,6 +6,7 @@ from llm_chess.data.raw.generation_util.sft_dataloaders import DatasetSource, lo
 
 # Main args to adjust
 MAX_SAMPLES = 750_000
+MAX_TOKENS  = 10_000_000
 SAMPLING_STRATEGY = "tokens"  # "samples" | "tokens"
 TOKENIZER_VERSION = "qwen25"
 OUTPUT_FOLDER = "llm_chess/data/"
@@ -14,32 +15,17 @@ DATASET_CONFIG = [
     {
         "name": "magpie",
         "files": ["magpieclean_20000.jsonl"],
-        "weight": 0.05
-    },
-    {
-        "name": "chess_explainer",
-        "files": ["combined_chessexplainer_5350.jsonl"],
-        "weight": 0.05
-    },
-    {
-        "name": "rejsampling",
-        "files": ["rejsampling_predictmove_balanced_5775.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
-        "weight": 0.2
-    },
-    {
-        "name": "synthetic_move_explanations",
-        "files": ["syntheticmoves_blunders_1000.jsonl", "syntheticmoves_goodmoves_300.jsonl"],
         "weight": 0.1
     },
     {
-        "name": "latent_sft_simple",
-        "files": ["latentsft_train_contrastive_ntp_87438.jsonl", "latentsft_trainXL_cloze_capture_100000.jsonl", "latentsft_trainXL_is_legal_100000.jsonl", "latentsft_trainXL_mat_adv_value_50000.jsonl", "latentsft_trainXL_mobility_50000.jsonl", "latentsft_trainXL_under_attack_50000.jsonl", "latentsft_trainXL_win_prob_50000.jsonl"],
-        "weight": 0.1
+        "name": "synthetic",
+        "files": ["combined_chessexplainer_5350.jsonl", "rejsampling_predictmove_balanced_5775.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_legalmoves_balanced_604.jsonl", "syntheticmoves_blunders_1000.jsonl", "syntheticmoves_goodmoves_300.jsonl", "latentsft_train_contrastive_ntp_87438.jsonl", "latentsft_trainXL_cloze_capture_100000.jsonl", "latentsft_trainXL_is_legal_100000.jsonl", "latentsft_trainXL_mat_adv_value_50000.jsonl", "latentsft_trainXL_mobility_50000.jsonl", "latentsft_trainXL_under_attack_50000.jsonl", "latentsft_trainXL_win_prob_50000.jsonl"],
+        "weight": 0.8
     },
     {
         "name": "latent_sft_bestmove",
         "files": ["latentsft_trainBC_bestmove_100k_p1.jsonl", "latentsft_trainBC_bestmove_100k_p2.jsonl", "latentsft_trainBC_bestmove_100k_p3.jsonl", "latentsft_trainBC_bestmove_100k_p4.jsonl", "latentsft_trainBC_bestmove_100k_p5.jsonl", "latentsft_trainBC_bestmove_100k_p6.jsonl", "latentsft_trainBC_bestmove_100k_p7.jsonl", "latentsft_trainBC_bestmove_100k_p8.jsonl", "latentsft_trainBC_bestmove_100k_p9.jsonl", "latentsft_trainBC_bestmove_100k_p10.jsonl"],
-        "weight": 0.5
+        "weight": 0.1
     }
 ]
 
@@ -59,7 +45,7 @@ if SAMPLING_STRATEGY == "samples":
     final_samples = load_weighted_by_samples(sources, MAX_SAMPLES)
 elif SAMPLING_STRATEGY == "tokens":
     token_counter = TokenizerCounter(TOKENIZER_VERSION)
-    final_samples = load_weighted_by_tokens(sources, MAX_SAMPLES, token_counter)
+    final_samples = load_weighted_by_tokens(sources, MAX_TOKENS, token_counter)
 else:
     raise ValueError("SAMPLING_STRATEGY must be 'samples' or 'tokens'")
 
