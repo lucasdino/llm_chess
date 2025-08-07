@@ -1,6 +1,7 @@
-import random
+import os, csv, json, random
 from dataclasses import dataclass
 from typing import List, Dict, Tuple, Iterable
+from collections import defaultdict
 
 from datasets import load_dataset, concatenate_datasets, Dataset
 
@@ -156,3 +157,52 @@ def load_weighted_by_tokens(
 
     rng.shuffle(final_examples)
     return _process_examples(final_examples, chat_processor)
+
+
+# ------------------------------ Helper to get token stats on datasets ------------
+
+def write_token_csv_and_stats(
+    sources: list[DatasetSource],
+    token_counter: TokenizerCounter,
+    csv_path: str,
+    log_every: int = 100_000,
+) -> None:
+    per_file_rows: list[dict] = []
+    group_totals   = defaultdict(int)
+    grand_total    = 0
+
+    for src in sources:
+        for fp in src.file_paths:
+            token_sum = 0
+            line_n    = 0
+            print(f"→ Scanning {fp} …")
+            with open(fp, "r", encoding="utf-8") as f:
+                for line in f:
+                    line_n += 1
+                    if line_n % log_every == 0:
+                        print(f"   {line_n:,} lines processed…")
+                    obj = json.loads(line)
+                    assistant_text = None
+                    chat = obj.get("chat", [])
+                    for entry in chat:
+                        if entry[0] == "assistant":
+                            assistant_text = entry[1]
+                            break
+                    token_sum += token_counter.count(assistant_text)
+            print(f"   done: {line_n:,} lines, {token_sum:,} tokens\n")
+
+            per_file_rows.append(
+                {"group": src.name, "file": os.path.basename(fp), "tokens": token_sum}
+            )
+            group_totals[src.name] += token_sum
+            grand_total            += token_sum
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as csvf:
+        w = csv.DictWriter(csvf, fieldnames=["group", "file", "tokens"])
+        w.writeheader()
+        w.writerows(per_file_rows)
+
+    print("\nToken distribution by group (assistant text only):")
+    for grp, tk in group_totals.items():
+        pct = 100.0 * tk / grand_total if grand_total else 0.0
+        print(f"  {grp:<20} {tk:>12,}  ({pct:6.2f}%)")

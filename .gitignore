@@ -15,7 +15,9 @@ llm_chess/data/preprocessed_train_data/
 llm_chess/data/programmatic_explanations/data/
 
 # Excessively large files
-llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p1.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p2.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p3.jsonl
 
 # Various runscripts to ignore
 runscripts/eval/
