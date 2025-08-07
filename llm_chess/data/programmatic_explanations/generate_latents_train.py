@@ -6,7 +6,7 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "trainBC_10mm"
+GENERATION_TYPE = "trainBC"
 
 DATA_FILES = {
     "trainXL": "data/trainxl_1mm.csv",
@@ -20,17 +20,17 @@ DATA_FILES = {
 
 # Desired sample sizes per task
 TASK_SIZES = {
-    # "is_check": 256,
+    # "is_check": 200_000,
     # "large_mat_adv": 256,
     # "mat_bal": 256,
-    # "is_legal": 256,
-    # "under_attack": 256,
-    # "mat_adv_value": 256,
+    # "is_legal": 200_000,
+    "under_attack": 200_000,
+    # "mat_adv_value": 200_000,
     # "win_prob": 256,
-    # "mobility": 256,
+    # "mobility": 200_000,
     # "contrastive_ntp": 256,
-    # "cloze_capture": 256,
-    "predict_bestmove": 5_000_000,
+    # "cloze_capture": 200_000,
+    # "predict_bestmove": 5_000_000,
     # "best_move_le12": 50000,
 }
 

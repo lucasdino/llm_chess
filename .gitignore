@@ -18,6 +18,11 @@ llm_chess/data/programmatic_explanations/data/
 llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p1.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p2.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p3.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_cloze_capture_200k.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_is_check_200k.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_is_legal_200k.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_mat_adv_value_200k.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_mobility_200k.jsonl
 
 # Various runscripts to ignore
 runscripts/eval/
