@@ -12,26 +12,41 @@ TOKENIZER_VERSION = "qwen25"
 OUTPUT_FOLDER = "llm_chess/data/"
 DATA_FOLDER = "llm_chess/data/cleaned/train_data"
 DATASET_CONFIG = [
+    {
+        "name": "magpie",
+        "files": ["magpieclean_20k.jsonl"],
+        "weight": 0.1
+    },
+    {
+        "name": "programmatic_chess_explainer",
+        "files": ["combined_chessexplainer_5350.jsonl"],
+        "weight": 0.1
+    },
+    {
+        "name": "programmatic_ntp",
+        "files": ["latentsft_train_contrastive_ntp_200k.jsonl", "latentsft_trainBC1mm_under_attack_200k.jsonl", "latentsft_trainBC1mm_cloze_capture_200k.jsonl", "latentsft_trainBC1mm_mobility_200k.jsonl", "latentsft_trainBC1mm_mat_adv_value_200k.jsonl", "latentsft_trainBC1mm_is_legal_200k.jsonl", "latentsft_trainBC1mm_is_check_200k.jsonl"],
+        "weight": 0.1
+    },
+    {
+        "name": "rejection_sampling_predictmove",
+        "files": ["rejsampling_predictmove_balanced_5775.jsonl"],
+        "weight": 0.1
+    },
+    {
+        "name": "rejection_sampling_other",
+        "files": ["rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
+        "weight": 0.1
+    },
+    {
+        "name": "synthetic_moves",
+        "files": ["syntheticmoves_blunders_11k.jsonl"],
+        "weight": 0.1
+    },
     # {
-    #     "name": "magpie",
-    #     "files": ["magpieclean_20000.jsonl"],
-    #     "weight": 0.1
-    # },
-    # {
-    #     "name": "magpie_synthetic",
-    #     "files": ["combined_chessexplainer_5350.jsonl", "rejsampling_predictmove_balanced_5775.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_legalmoves_balanced_604.jsonl", "syntheticmoves_blunders_1000.jsonl", "syntheticmoves_goodmoves_300.jsonl", "latentsft_train_contrastive_ntp_87438.jsonl", "latentsft_trainXL_cloze_capture_100000.jsonl", "latentsft_trainXL_is_legal_100000.jsonl", "latentsft_trainXL_mat_adv_value_50000.jsonl", "latentsft_trainXL_mobility_50000.jsonl", "latentsft_trainXL_under_attack_50000.jsonl", "latentsft_trainXL_win_prob_50000.jsonl"],
-    #     "weight": 0.15
-    # },
-    # {
-    #     "name": "latent_sft_bestmove",
+    #     "name": "programmatic_bestmove",
     #     "files": ["latentsft_trainBC_bestmove_5mm_p1.jsonl", "latentsft_trainBC_bestmove_5mm_p2.jsonl", "latentsft_trainBC_bestmove_5mm_p3.jsonl"],
     #     "weight": 0.75
     # }
-    {
-        "name": "latent_sft_ntp",
-        "files": ["latentsft_train_contrastive_ntp_200k.jsonl", "latentsft_trainBC1mm_under_attack_200k.jsonl", "latentsft_trainBC1mm_cloze_capture_200k.jsonl", "latentsft_trainBC1mm_mobility_200k.jsonl", "latentsft_trainBC1mm_mat_adv_value_200k.jsonl", "latentsft_trainBC1mm_is_legal_200k.jsonl", "latentsft_trainBC1mm_is_check_200k.jsonl"],
-        "weight": 1.0
-    }
 ]
 
 

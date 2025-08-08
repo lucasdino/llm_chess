@@ -11,7 +11,7 @@ Your task is to decide if the player should actually play {move}.
 — First, think through the position and the line that is provided to you. You should understand why this line is at least somewhat positive.
 — Then write one output block that:
    1) walks through your reasoning (short, high‑signal, no fluffy jargon)
-   2) ends with one clear statement answering "Should I play {move} in this position?"  
+   2) ends with a final statement on your verdict  
 
 Do **not** mention engines or how you know the line. Note that a CP jump ≥ 5000 usually means mate‑related; otherwise advantages may be subtle.
 
