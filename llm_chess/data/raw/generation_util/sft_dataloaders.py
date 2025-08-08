@@ -88,6 +88,7 @@ def load_weighted_by_tokens(
     chat_processor = LlamaFactoryChatProcessor()
 
     # Load once
+    source_names = [s.name for s in sources]
     loaded = [s.load() for s in sources]
     weights = [max(s.weight, 0.0) for s in sources]
     assert any(w > 0 for w in weights), "At least one positive weight required."
@@ -154,6 +155,11 @@ def load_weighted_by_tokens(
     final_examples = []
     for ds_id, row_idx, _ in result_indices:
         final_examples.append(loaded[ds_id][row_idx])
+
+    # Zip and print the name -> Amount tokens -> % of total for sanity check
+    for i, (name, tokens) in enumerate(zip(source_names, token_tally)):
+        pct = 100.0 * tokens / total_tokens if total_tokens > 0 else 0.0
+        print(f"  {name:<20} {tokens:>8,} tokens ({pct:5.1f}%)")
 
     rng.shuffle(final_examples)
     return _process_examples(final_examples, chat_processor)
