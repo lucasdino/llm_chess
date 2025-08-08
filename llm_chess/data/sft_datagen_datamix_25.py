@@ -15,7 +15,7 @@ DATASET_CONFIG = [
     {
         "name": "magpie",
         "files": ["magpieclean_20k.jsonl"],
-        "weight": 0.25
+        "weight": 0.3
     },
     {
         "name": "programmatic_chess_explainer",
@@ -25,17 +25,17 @@ DATASET_CONFIG = [
     {
         "name": "programmatic_ntp",
         "files": ["latentsft_train_contrastive_ntp_200k.jsonl", "latentsft_trainBC1mm_under_attack_200k.jsonl", "latentsft_trainBC1mm_cloze_capture_200k.jsonl", "latentsft_trainBC1mm_mobility_200k.jsonl", "latentsft_trainBC1mm_mat_adv_value_200k.jsonl", "latentsft_trainBC1mm_is_legal_200k.jsonl", "latentsft_trainBC1mm_is_check_200k.jsonl"],
-        "weight": 0.25
+        "weight": 0.1
     },
     {
         "name": "rejection_sampling_predictmove",
         "files": ["rejsampling_predictmove_balanced_5775.jsonl"],
-        "weight": 0.25
+        "weight": 0.3
     },
     {
         "name": "rejection_sampling_other",
         "files": ["rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
-        "weight": 0.25
+        "weight": 0.3
     },
     # {
     #     "name": "synthetic_moves",
