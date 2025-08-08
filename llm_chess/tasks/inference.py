@@ -12,7 +12,7 @@ TASK_MAP = {
     'legalmoves': "produce_list",
     'predictmove': "predict_singlemove",
     'blunder_explanations': "synthetic_generation",
-    'good_move_explanations': "synthetic_generation",
+    'goodmove_explanations': "synthetic_generation",
     'cloze-capture': "ntp_predict_move",
     'contrastive-ntp': "ntp_predict_move",
     'is-check': "ntp_yes_no",
