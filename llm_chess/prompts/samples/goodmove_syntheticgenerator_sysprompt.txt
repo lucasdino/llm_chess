@@ -13,7 +13,7 @@ Your task is to decide if the player should actually play {move}.
    1) walks through your reasoning (short, high‑signal, no fluffy jargon)
    2) ends with a final statement on your verdict  
 
-Do **not** mention engines or how you know the line. Note that a CP jump ≥ 5000 usually means mate‑related; otherwise advantages may be subtle.
+Do **not** mention engines or how you know the line. Note that a CP jump ≥ 5000 usually means mate‑related; otherwise advantages may be subtle. Always refer to moves in UCI notation (e.g., e4f6).
 
 Your answer must be in the following format: <answer> logic_then_verdict </answer>.
 

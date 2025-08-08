@@ -6,7 +6,7 @@ Make sure that your response satisfies this task and can clearly be used to answ
 
 However -- and this is critical -- your response should explain the reasoning first before giving your final verdict. You should not start by discouraging the move. You should instead walk through reasoning -- 'thinking out loud' before ending with a statement that says your verdict because of the previous reasoning you mention in your final answer.
 
-In your response do not mention that you have access to the chess engine data.
+In your response do not mention that you have access to the chess engine data. Always refer to moves in UCI notation (e.g., e4f6).
 
 You should take time to think through the situation first. You should use this initial reasoning to influence your final answer. You should start your final response with a walk-through of logic -- as if you're thinking out loud looking at the move from scratch -- followed by your move verdict as a resulting byproduct. You must respond with your explanation in answer tags (e.g., <answer> logic_then_verdict </answer>).
 
