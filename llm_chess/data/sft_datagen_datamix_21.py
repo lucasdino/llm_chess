@@ -39,7 +39,7 @@ DATASET_CONFIG = [
     # },
     {
         "name": "synthetic_moves",
-        "files": ["syntheticmoves_blunders_11k.jsonl", "syntheticmoves_goodmove_5k.jsonl"],
+        "files": ["syntheticmoves_blunders_11k.jsonl", "syntheticmoves_reasonablemove_20k.jsonl"],
         "weight": 0.1
     },
     # {
