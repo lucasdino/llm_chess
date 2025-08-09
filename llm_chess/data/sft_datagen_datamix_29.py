@@ -6,7 +6,7 @@ from llm_chess.data.raw.generation_util.sft_dataloaders import DatasetSource, lo
 
 # Main args to adjust
 MAX_SAMPLES = 750_000
-MAX_TOKENS  = 50_000_000
+MAX_TOKENS  = 60_000_000
 SAMPLING_STRATEGY = "tokens"                # "samples" | "tokens" | "get_token_stats"
 TOKENIZER_VERSION = "qwen25"
 OUTPUT_FOLDER = "llm_chess/data/"
@@ -15,36 +15,36 @@ DATASET_CONFIG = [
     {
         "name": "magpie",
         "files": ["magpieclean_20k.jsonl"],
-        "weight": 0.12
+        "weight": 0.15
     },
     {
         "name": "programmatic_chess_explainer",
         "files": ["combined_chessexplainer_5350.jsonl"],
-        "weight": 0.06
+        "weight": 0.06333
     },
     {
         "name": "programmatic_ntp",
         "files": ["latentsft_train_contrastive_ntp_200k.jsonl", "latentsft_trainBC1mm_under_attack_200k.jsonl", "latentsft_trainBC1mm_cloze_capture_200k.jsonl", "latentsft_trainBC1mm_mobility_200k.jsonl", "latentsft_trainBC1mm_mat_adv_value_200k.jsonl", "latentsft_trainBC1mm_is_legal_200k.jsonl", "latentsft_trainBC1mm_is_check_200k.jsonl"],
-        "weight": 0.04
+        "weight": 0.03667
     },
     {
         "name": "rejection_sampling_predictmove",
         "files": ["rejsampling_predictmove_balanced_5775.jsonl"],
-        "weight": 0.07
+        "weight": 0.06333
     },
     {
         "name": "rejection_sampling_other",
         "files": ["rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
-        "weight": 0.07
+        "weight": 0.06167
     },
     {
         "name": "synthetic_moves",
         "files": ["syntheticmoves_blunders_11k.jsonl", "syntheticmoves_reasonablemove_oss120b_low_50k.jsonl"],
-        "weight": 0.14
+        "weight": 0.125
     },
     {
         "name": "programmatic_bestmove",
-        "files": ["latentsft_trainBC_bestmove_5mm_p1.jsonl", "latentsft_trainBC_bestmove_5mm_p2.jsonl", "latentsft_trainBC_bestmove_5mm_p3.jsonl"],
+        "files": ["latentsft_trainBC_bestmove_5mm_p1.jsonl", "latentsft_trainBC_bestmove_5mm_p2.jsonl"],
         "weight": 0.5
     }
 ]
