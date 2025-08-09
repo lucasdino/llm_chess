@@ -20,7 +20,7 @@ DATASET_CONFIG = [
     {
         "name": "programmatic_chess_explainer",
         "files": ["combined_chessexplainer_5350.jsonl"],
-        "weight": 0.2
+        "weight": 0.1
     },
     # {
     #     "name": "programmatic_ntp",
@@ -30,17 +30,17 @@ DATASET_CONFIG = [
     {
         "name": "rejection_sampling_predictmove",
         "files": ["rejsampling_predictmove_balanced_5775.jsonl"],
-        "weight": 0.15
+        "weight": 0.10
     },
     {
         "name": "rejection_sampling_other",
         "files": ["rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
-        "weight": 0.15
+        "weight": 0.10
     },
     {
         "name": "synthetic_moves",
         "files": ["syntheticmoves_blunders_11k.jsonl", "syntheticmoves_reasonablemove_oss120b_low_50k.jsonl"],
-        "weight": 0.4
+        "weight": 0.6
     },
     # {
     #     "name": "programmatic_bestmove",
