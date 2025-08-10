@@ -32,7 +32,8 @@ TASK_SIZES = {
     # "cloze_capture": 200_000,
     # "predict_bestmove": 5_000_000,
     # "best_move_le12": 50000,
-    "multi_sample": 500_000
+    # "multi_sample": 500_000,
+    "predict_line": 1_000_000,
 }
 
 TASK_TO_FN_MAP = {
@@ -48,7 +49,8 @@ TASK_TO_FN_MAP = {
     "cloze_capture": "cloze-capture",
     "predict_bestmove": "bestmove",
     "best_move_le12": "best-move-le12",
-    "multi_sample": "multi-sample"
+    "multi_sample": "multi-sample",
+    "predict_line": "predict-line",
 }
 
 # Sampling criteria
@@ -94,7 +96,11 @@ GENERATION_CONFIG = {
     "best_move_le11": None,
     "best_move_le12": None,
     "predict_bestmove": None,
-    "multi_sample": None
+    "multi_sample": None,
+    "predict_line": {
+        "plies": (4, 6),
+        "search_depth": 10,
+    }
 }
 
 # New technique -- can update 'args' to equal something different if I want to adjust args
@@ -177,6 +183,7 @@ TASK_SAMPLING_CRITERIA = {
     "best_move_le12": {},
     "predict_bestmove": {},
     "multi_sample": {},
+    "predict_line": {},
 }
 
 PRINT_DISTRIBUTION_COLUMNS = {
@@ -197,6 +204,7 @@ PRINT_DISTRIBUTION_COLUMNS = {
     "best_move_le12": ["piece_count"],
     "predict_bestmove": ["movecount_bucket", "player_bucket"],
     "multi_sample": ["movecount_bucket", "player_bucket"],
+    "predict_line": ["movecount_bucket", "player_bucket"],
 }
 
 

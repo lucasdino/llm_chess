@@ -1,12 +1,56 @@
 import ast
 import math
+import time
 import chess
+import chess.engine
 import random
 import pandas as pd
 from typing import Dict
+from pathlib import Path
+import sys, asyncio, atexit, threading
 
 from prompt import _convert_fen_to_visual
 
+# ===================================
+# Setup our chess engine in advance 
+# (only used in a couple of these generators)
+# ===================================
+engine_path = Path("./stockfish/stockfish-windows-x86-64-avx2.exe").resolve()
+if not engine_path.exists():
+    raise FileNotFoundError(f"Stockfish not found at: {engine_path}")
+
+# On Windows/Jupyter, use python‑chess’ event loop policy so subprocess engines work
+if sys.platform == "win32":
+    try:
+        asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
+    except Exception:
+        pass
+
+# Lazily create a single engine instance; guard all calls with a lock.
+_ENGINE: chess.engine.SimpleEngine | None = None
+_ENGINE_LOCK = threading.Lock()
+
+def _get_engine() -> chess.engine.SimpleEngine:
+    global _ENGINE
+    if _ENGINE is None:
+        _ENGINE = chess.engine.SimpleEngine.popen_uci(str(engine_path))
+    return _ENGINE
+
+def _engine_analyse(board: chess.Board, limit: chess.engine.Limit, **kwargs):
+    """Thread-safe wrapper around engine.analyse."""
+    eng = _get_engine()
+    with _ENGINE_LOCK:
+        return eng.analyse(board, limit, **kwargs)
+
+# Ensure engine subprocess is terminated on interpreter exit
+def _shutdown_engine():
+    global _ENGINE
+    try:
+        if _ENGINE is not None:
+            _ENGINE.quit()
+    finally:
+        _ENGINE = None
+atexit.register(_shutdown_engine)
 
 # ==================================================
 # Prefill Helpers / Functions
@@ -14,6 +58,7 @@ from prompt import _convert_fen_to_visual
 class ProgrammaticGenerationError(Exception):
     """ Exception raised when you get a failure from a Programmatic Generation. """
     pass
+
 
 _PIECE_VALUE = {
     chess.PAWN:   100,
@@ -820,6 +865,49 @@ def _generate_multisample(df_row: pd.Series, cfg: Dict):
     return chat, info
 
 
+def _get_optimal_line(fen: str, line_plies: int = 5, search_depth: int = 14) -> str:
+    "Helper function for _generate_predict_line"
+    board = chess.Board(fen)
+    info = _engine_analyse(board, chess.engine.Limit(depth=search_depth))
+
+    pv = info.get("pv")
+    if not pv:
+        return ""
+
+    pv = pv[:line_plies]
+    uci_moves = [m.uci() for m in pv]
+
+    tmp = board.copy()
+    for m in pv:
+        tmp.push(m)
+    is_mate = tmp.is_checkmate()
+
+    return " ".join(uci_moves) + (" mate" if is_mate else "")
+
+
+def _generate_predict_line(df_row: pd.Series, cfg: Dict):
+    low, high = cfg["plies"]
+    target = random.randint(low, high)
+    search_depth = cfg['search_depth'] 
+    try:
+        answer = _get_optimal_line(df_row['FEN'], line_plies=target, search_depth=search_depth)
+        question = f"What are the likely next {target} plies that would play out? List all moves in UCI notation (e.g., e4f6), separate moves with a space, and if there is a checkmate, please end your sequence with 'mate'."
+        chat = {
+            "chat": [
+                ["system", LATENTS_SYSPROMPT],
+                ["user", LATENTS_USERPROMPT.format(
+                    board=_convert_fen_to_visual(df_row["FEN"]),
+                    question=question,
+                    add_info=""
+                )],
+                ["assistant", answer],
+            ]
+        }
+        return chat, None
+    except:
+        raise ProgrammaticGenerationError()
+
+
 # ==================================================
 # Router
 # ==================================================
@@ -841,6 +929,7 @@ TASK_MAP = {
     "best_move_le12":    _generate_best_move_n_pieces,
     "predict_bestmove":  _generate_predict_bestmove,
     "multi_sample":      _generate_multisample,
+    "predict_line":      _generate_predict_line,
 }
 
 PREFILL_TASK_MAP = {
@@ -861,6 +950,7 @@ PREFILL_TASK_MAP = {
     "best_move_le12":    _prefill_best_move_n_pieces,
     "predict_bestmove":  _prefill_identity,
     "multi_sample":      _prefill_multisample,
+    "predict_line":      _prefill_identity,
 }
 
 
@@ -881,7 +971,11 @@ def latents_generator(task: str, df: pd.DataFrame, config_args: Dict = None) -> 
     info_buffers: Dict[str, list] = {}        # {info_key: [vals…]}
     num_generation_errors = 0
 
-    for _, row in df.iterrows():
+    total_rows = len(df)
+    print_interval = max(1, total_rows // 10)  # 10 total prints
+    start_time = time.time()
+
+    for i, (_, row) in enumerate(df.iterrows(), 1):
         try:
             chat_data, df_info = TASK_MAP[task](row, config_args)
             chat_data_list.append(chat_data)
@@ -895,11 +989,18 @@ def latents_generator(task: str, df: pd.DataFrame, config_args: Dict = None) -> 
             else:
                 raise e
 
+        # progress printing
+        if i % print_interval == 0 or i == total_rows:
+            elapsed = time.time() - start_time
+            samples_per_s = i / elapsed
+            print(f"[{i}/{total_rows}] {samples_per_s:.2f} samples/s")
+
     # attach new columns
     df[chat_col] = chat_data_list
     for k, vals in info_buffers.items():
         df[k] = vals
 
     print(f"Total Number of generation errors: {num_generation_errors}")
+    _shutdown_engine()
 
     return df
