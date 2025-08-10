@@ -25,6 +25,7 @@ llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_mat_adv_value_200k.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_mobility_200k.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_under_attack_200k.jsonl
 llm_chess/data/cleaned/train_data/latentsft_train_contrastive_ntp_200k.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainXL_multisample_500k.jsonl
 
 # Various runscripts to ignore
 runscripts/eval/

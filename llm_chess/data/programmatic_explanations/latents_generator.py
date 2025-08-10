@@ -11,6 +11,10 @@ from prompt import _convert_fen_to_visual
 # ==================================================
 # Prefill Helpers / Functions
 # ==================================================
+class ProgrammaticGenerationError(Exception):
+    """ Exception raised when you get a failure from a Programmatic Generation. """
+    pass
+
 _PIECE_VALUE = {
     chess.PAWN:   100,
     chess.KNIGHT: 320,
@@ -29,7 +33,7 @@ def _get_piece_values() -> str:
             f"Rook={_PIECE_VALUE[chess.ROOK]}; "
             f"Queen={_PIECE_VALUE[chess.QUEEN]}; "
             f"King={_PIECE_VALUE[chess.KING]}. "
-            f"You should respond with just a number in the format '+#,##0' or '-#,##0' to the following.")
+            f"You should respond with just an integer in the format '#,##0' or '-#,##0'.")
 
 
 def _material_cp(board: chess.Board) -> int:
@@ -133,15 +137,29 @@ def _prefill_best_move_n_pieces(df):
     return df
 
 
+def _prefill_multisample(df):
+    "Fills in both 'is_check' and the centipawn advantage values"
+    def _is_check_status(fen: str) -> str:
+        board = chess.Board(fen)
+        if not board.is_check():
+            return "n"
+        return "w" if board.turn else "b"   # board.turn == True  -> white to move   
+    def _centipawn_adv(fen): return _material_cp(chess.Board(fen))
+
+    df = df.copy()
+    df["is_check_bucket"] = df["FEN"].apply(_is_check_status)
+    df["mat_adv"] = df["FEN"].apply(_centipawn_adv)
+    return df
+
 # ==================================================
 # Generator Helpers / Functions
 # ==================================================
 LATENTS_SYSPROMPT = "chess_generic.txt"
 LATENTS_USERPROMPT = (
-    "Here is a board in a game you're currently playing:\n{board}\n\n{add_info}\n\n"
-    "My question:\n{question}"
+    "Here is a board in a game you're currently playing:\n{board}{add_info}\n\n"
+    "Answer the following - if multiple questions, include a space between each answer:\n{question}"
 )
-ADD_INFO_YN = "You should respond with a single token -- 'Yes' or 'No' -- to the following."
+ADD_INFO_YN = "\n\nYou should respond with a single token -- 'Yes' or 'No' -- to the following."
 
 _piece_letter_map = {            # already in file but shown for clarity
     chess.PAWN:"p", chess.KNIGHT:"n", chess.BISHOP:"b",
@@ -153,13 +171,13 @@ _piece_word = {                  # for wording the question
 }
 
 
-def _generate_is_check(df_row: pd.Series, config_args: Dict):
+def _generate_is_check(df_row: pd.Series, config_args: Dict, just_qa: bool = False):
     # Cases to generate our data
     if df_row["is_check_bucket"] == "n":
         question = (
-            "Is the black king in check?"
+            "Is the black king in check {'Yes', 'No'}?"
             if random.random() < 0.5
-            else "Is the white king in check?"
+            else "Is the white king in check {'Yes', 'No'}?"
         )
         answer = "No"
         cat = "tn"
@@ -176,15 +194,18 @@ def _generate_is_check(df_row: pd.Series, config_args: Dict):
             or (answer == "No" and df_row["is_check_bucket"] == "w")
         )
         question = (
-            "Is the black king in check?" if play_black else "Is the white king in check?"
+            "Is the black king in check {'Yes', 'No'}?" if play_black else "Is the white king in check {'Yes', 'No'}?"
         )
+
+    if just_qa:
+        return question, answer
 
     # Formatting outputs
     sys_prompt = LATENTS_SYSPROMPT
     user_prompt = LATENTS_USERPROMPT.format(
         board=_convert_fen_to_visual(df_row["FEN"]), 
         question=question, 
-        add_info=ADD_INFO_YN
+        add_info=""
     )
     df_info = {"is_check_gen_bucket": cat}
     chat = {"chat": [["system", sys_prompt], ["user", user_prompt], ["assistant", answer]]}
@@ -306,7 +327,7 @@ def _plausible_move(board: chess.Board,
     raise RuntimeError("No plausible illegal move found.")
 
 
-def _generate_is_legal(df_row: pd.Series, cfg: Dict):
+def _generate_is_legal(df_row: pd.Series, cfg: Dict, just_qa: bool = False):
     """
     cfg:
         piece_freq   = {"p": w, "n": …}
@@ -373,14 +394,18 @@ def _generate_is_legal(df_row: pd.Series, cfg: Dict):
             answer, bucket = "Yes", "tp"
 
     # ---------------- build output ------------------------------------- #
-    question = f"Can you legally play {move}?"
+    question = f"Can you legally play {move} {{'Yes', 'No'}}?"
+    
+    if just_qa:
+        return question, answer
+    
     chat = {
         "chat": [
             ["system", LATENTS_SYSPROMPT],
             ["user", LATENTS_USERPROMPT.format(
                 board=_convert_fen_to_visual(df_row["FEN"]),
                 question=question,
-                add_info=ADD_INFO_YN)],
+                add_info="")],
             ["assistant", answer],
         ]
     }
@@ -392,7 +417,7 @@ def _generate_is_legal(df_row: pd.Series, cfg: Dict):
     return chat, info
 
 
-def _generate_under_attack(df_row: pd.Series, cfg: Dict):
+def _generate_under_attack(df_row: pd.Series, cfg: Dict, just_qa: bool = False):
     """
     Prompt: “Can your <piece> take their <piece>?”
 
@@ -457,14 +482,18 @@ def _generate_under_attack(df_row: pd.Series, cfg: Dict):
         else:
             answer, bucket = "No",  "tn"
 
-    question = f"Can your {_piece_word[piece]} take their {_piece_word[target]}?"
+    question = f"Can your {_piece_word[piece]} take their {_piece_word[target]} {{'Yes', 'No'}}?"
+    
+    if just_qa:
+        return question, answer
+    
     chat = {
         "chat": [
             ["system", LATENTS_SYSPROMPT],
             ["user",   LATENTS_USERPROMPT.format(
                     board=_convert_fen_to_visual(df_row['FEN']), 
                     question=question, 
-                    add_info=ADD_INFO_YN
+                    add_info=""
                 )],
             ["assistant", answer],
         ]
@@ -473,17 +502,21 @@ def _generate_under_attack(df_row: pd.Series, cfg: Dict):
     return chat, info
 
 
-def _generate_mat_adv_value(df_row: pd.Series, _cfg: Dict):
+def _generate_mat_adv_value(df_row: pd.Series, _cfg: Dict, just_qa: bool = False):
     ask_white = random.random() < 0.5
     color     = "white" if ask_white else "black"
     answer    = str(df_row["mat_adv"] if ask_white else -df_row["mat_adv"])
+    question=f"What is the material advantage for {color} ({_get_piece_values()})?"
+
+    if just_qa:
+        return question, answer
 
     chat = {"chat": [
         ["system", LATENTS_SYSPROMPT],
         ["user", LATENTS_USERPROMPT.format(
             board=_convert_fen_to_visual(df_row["FEN"]),
-            add_info=_get_piece_values(),
-            question=f"What is the material advantage for {color}?"
+            question=question,
+            add_info=""
         )],
         ["assistant", answer],
     ]}
@@ -494,20 +527,22 @@ def _generate_mat_adv_value(df_row: pd.Series, _cfg: Dict):
     return chat, info
 
 
-def _generate_win_prob(df_row: pd.Series, _cfg: Dict):
+def _generate_win_prob(df_row: pd.Series, _cfg: Dict, just_qa: bool = False):
     move, prob     = _pick_move_prob(df_row)
-    decs           = random.randint(1, 2)
+    decs           = 1
+    question       = f"If you play {move}, what is your expected probability of winning (answer with a float to {decs} decimal place(s))?"
     answer         = f"{prob:.{decs}f}"
-    add_info       = (f"You should respond with a decimal in '0.#' format using exactly {decs} "
-                      f"decimal place{'s' if decs>1 else ''} to the following.")
-    question       = f"If you play {move}, what is your expected probability of winning?"
+    
+    if just_qa:
+        return question, answer
+    
     chat = {
         "chat": [
             ["system", LATENTS_SYSPROMPT],
             ["user", LATENTS_USERPROMPT.format(
                 board=_convert_fen_to_visual(df_row["FEN"]),
                 question=question,
-                add_info=add_info
+                add_info=""
             )],
             ["assistant", answer],
         ]
@@ -516,7 +551,7 @@ def _generate_win_prob(df_row: pd.Series, _cfg: Dict):
     return chat, info
 
 
-def _generate_mobility(df_row: pd.Series, cfg: Dict):
+def _generate_mobility(df_row: pd.Series, cfg: Dict, just_qa: bool = False):
     board = chess.Board(df_row["FEN"])
     you   = board.turn
 
@@ -531,8 +566,11 @@ def _generate_mobility(df_row: pd.Series, cfg: Dict):
 
     n_moves = sum(1 for mv in board.legal_moves if mv.from_square == square)
 
-    question = f"How many legal moves does your {_piece_word[piece_l]} at {sq_name} have?"
+    question = f"How many legal moves does your {_piece_word[piece_l]} at {sq_name} have (answer with an integer)?"
     answer   = str(n_moves)
+
+    if just_qa:
+        return question, answer
 
     chat = {
         "chat": [
@@ -540,7 +578,7 @@ def _generate_mobility(df_row: pd.Series, cfg: Dict):
             ["user", LATENTS_USERPROMPT.format(
                 board=_convert_fen_to_visual(df_row["FEN"]),
                 question=question,
-                add_info="You should respond with just an integer to the following."
+                add_info=""
             )],
             ["assistant", answer],
         ]
@@ -603,16 +641,10 @@ def _generate_contrastive_ntp(df_row: pd.Series, cfg: Dict):
             }
             return chat, info
 
-    # ── generation failed ────────────────────────────────────────────────
-    empty_info = {
-        "contrastive_ntp_bucket": "None",
-        "contrastive_ntp_piece_bucket": None,
-        "contrastive_ntp_delta": 0.0,
-    }
-    return {"chat": []}, empty_info
+    raise ProgrammaticGenerationError()   # Generation Failed
 
 
-def _generate_cloze_capture(df_row: pd.Series, cfg: Dict):
+def _generate_cloze_capture(df_row: pd.Series, cfg: Dict, just_qa: bool = False):
     """
     Pick a *unique* capture (only one friendly piece can capture that target).
     The blank is the origin square.  Answer is that square (e.g. 'e4').
@@ -642,35 +674,39 @@ def _generate_cloze_capture(df_row: pd.Series, cfg: Dict):
               for to, lst in targets.items() if len(lst) == 1
               for frm, p_l, v_l in lst]
 
-    if unique:
-        # lottery over piece types present
-        present = [u for u in unique if u[1] in weights]
-        if not present:
-            unique = []   # fall through to failure
-        else:
-            types = [u[1] for u in present]
-            chosen_type = random.choices(types,
-                                          weights=[weights[t] for t in types],
-                                          k=1)[0]
-            cand = random.choice([u for u in present if u[1] == chosen_type])
-            frm, p_l, v_l, to = cand
-            color  = "white" if you else "black"
-            q = (f"My piece on __ could take the opponent's "
-                 f"{_piece_word[v_l]} on {chess.square_name(to)}.")
-            chat = {"chat": [
-                ["system", LATENTS_SYSPROMPT],
-                ["user", LATENTS_USERPROMPT.format(
-                    board=_convert_fen_to_visual(df_row["FEN"]),
-                    question=q,
-                    add_info="Fill the blank with the square of the only piece that makes the following statement true (e.g., 'e4')."
-                )],
-                ["assistant", chess.square_name(frm)],
-            ]}
-            info = {"cloze_piece_bucket": p_l}
-            return chat, info
+    if not unique:
+        raise ProgrammaticGenerationError()
+    
+    # lottery over piece types present
+    present = [u for u in unique if u[1] in weights]
+    if not present:
+        raise ProgrammaticGenerationError()
+    else:
+        types = [u[1] for u in present]
+        chosen_type = random.choices(types,
+                                        weights=[weights[t] for t in types],
+                                        k=1)[0]
+        cand = random.choice([u for u in present if u[1] == chosen_type])
+        frm, p_l, v_l, to = cand
+        color  = "white" if you else "black"
+        question = (f"My piece on __ could take the opponent's "
+                    f"{_piece_word[v_l]} on {chess.square_name(to)} (answer with square of only piece that makes this statement true -- e.g., 'e4').")
+        answer   = chess.square_name(frm)
 
-    # ---- generation failed ---------------------------------------------
-    return {"chat": []}, {"cloze_piece_bucket": "None"}
+        if just_qa:
+            return question, answer
+
+        chat = {"chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question=question,
+                add_info=""
+            )],
+            ["assistant", answer],
+        ]}
+        info = {"cloze_piece_bucket": p_l}
+        return chat, info
 
 
 def _generate_best_move_n_pieces(df_row: pd.Series, cfg: Dict):
@@ -717,6 +753,73 @@ def _generate_predict_bestmove(df_row: pd.Series, _cfg: Dict):
     return chat, None
 
 
+def _generate_multisample(df_row: pd.Series, cfg: Dict):
+    """
+    cfg:
+      generation_samples: (low, high)
+      tasks: {task: {"frequency": int, "max_samples": int, "args": dict}}
+    """
+    low, high = cfg["generation_samples"]
+    target = random.randint(low, high)
+
+    specs = {t: s for t, s in cfg["tasks"].items() if t in TASK_MAP and s.get("frequency", 0) > 0}
+    if not specs:
+        raise ValueError("No eligible tasks.")
+
+    tickets = [t for t, s in specs.items() for _ in range(int(s["frequency"]))]
+    if not tickets:
+        raise ValueError("No tickets.")
+    random.shuffle(tickets)
+
+    quota = {t: int(specs[t].get("max_samples", 1)) for t in specs}
+
+    qs, ans = [], []
+    seen: set[tuple[str, str]] = set()
+    failed: set[str] = set()
+
+    while tickets and len(qs) < target:
+        t = tickets.pop()
+        if t in failed:
+            continue
+        if quota.get(t, 0) <= 0:
+            if t in tickets:
+                tickets = [x for x in tickets if x != t]  # hard-stop further draws for this task
+            continue
+        try:
+            q, a = TASK_MAP[t](df_row, specs[t].get("args", {}), just_qa=True)
+        except Exception:
+            failed.add(t); continue
+
+        if (q, a) == (None, None):
+            continue
+        if not (isinstance(q, str) and isinstance(a, str) and q and a):
+            failed.add(t); continue
+        if (q, a) in seen:
+            continue
+
+        seen.add((q, a)); qs.append(q); ans.append(a)
+        quota[t] -= 1
+        if quota[t] <= 0 and t in tickets:
+            tickets = [x for x in tickets if x != t]  # purge remaining tickets for this task
+
+    if not qs:
+        raise ProgrammaticGenerationError("No samples generated.")
+
+    chat = {
+        "chat": [
+            ["system", LATENTS_SYSPROMPT],
+            ["user", LATENTS_USERPROMPT.format(
+                board=_convert_fen_to_visual(df_row["FEN"]),
+                question="\n".join(qs),
+                add_info=""
+            )],
+            ["assistant", " ".join(ans)],
+        ]
+    }
+    info = {"multi_sample_n": len(qs), "multi_failed_tasks": sorted(failed)}
+    return chat, info
+
+
 # ==================================================
 # Router
 # ==================================================
@@ -737,6 +840,7 @@ TASK_MAP = {
     "best_move_le11":    _generate_best_move_n_pieces,
     "best_move_le12":    _generate_best_move_n_pieces,
     "predict_bestmove":  _generate_predict_bestmove,
+    "multi_sample":      _generate_multisample,
 }
 
 PREFILL_TASK_MAP = {
@@ -756,6 +860,7 @@ PREFILL_TASK_MAP = {
     "best_move_le11":    _prefill_best_move_n_pieces,
     "best_move_le12":    _prefill_best_move_n_pieces,
     "predict_bestmove":  _prefill_identity,
+    "multi_sample":      _prefill_multisample,
 }
 
 
@@ -774,18 +879,27 @@ def latents_generator(task: str, df: pd.DataFrame, config_args: Dict = None) -> 
     chat_col = f"{task}_chat"
     chat_data_list = []
     info_buffers: Dict[str, list] = {}        # {info_key: [vals…]}
+    num_generation_errors = 0
 
     for _, row in df.iterrows():
-        chat_data, df_info = TASK_MAP[task](row, config_args)
-        chat_data_list.append(chat_data)
+        try:
+            chat_data, df_info = TASK_MAP[task](row, config_args)
+            chat_data_list.append(chat_data)
 
-        if df_info:
-            for k, v in df_info.items():
-                info_buffers.setdefault(k, []).append(v)
+            if df_info:
+                for k, v in df_info.items():
+                    info_buffers.setdefault(k, []).append(v)
+        except Exception as e:
+            if isinstance(e, ProgrammaticGenerationError):
+                num_generation_errors += 1
+            else:
+                raise e
 
     # attach new columns
     df[chat_col] = chat_data_list
     for k, vals in info_buffers.items():
         df[k] = vals
+
+    print(f"Total Number of generation errors: {num_generation_errors}")
 
     return df

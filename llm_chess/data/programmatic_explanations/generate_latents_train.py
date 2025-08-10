@@ -6,7 +6,7 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "trainBC_5mm"
+GENERATION_TYPE = "trainXL"
 
 DATA_FILES = {
     "trainXL": "data/trainxl_1mm.csv",
@@ -23,7 +23,7 @@ TASK_SIZES = {
     # "is_check": 200_000,
     # "large_mat_adv": 256,
     # "mat_bal": 256,
-    "is_legal": 500_000,
+    # "is_legal": 500_000,
     # "under_attack": 200_000,
     # "mat_adv_value": 200_000,
     # "win_prob": 256,
@@ -32,6 +32,7 @@ TASK_SIZES = {
     # "cloze_capture": 200_000,
     # "predict_bestmove": 5_000_000,
     # "best_move_le12": 50000,
+    "multi_sample": 500_000
 }
 
 TASK_TO_FN_MAP = {
@@ -47,10 +48,11 @@ TASK_TO_FN_MAP = {
     "cloze_capture": "cloze-capture",
     "predict_bestmove": "bestmove",
     "best_move_le12": "best-move-le12",
+    "multi_sample": "multi-sample"
 }
 
 # Sampling criteria
-BASE_CRITERIA = {
+BASE_SAMPLING_CRITERIA = {
     "movecount": {
         (0, 9): 0.15,
         (10, 19): 0.3,
@@ -61,13 +63,13 @@ BASE_CRITERIA = {
     "player": {"w": 0.5, "b": 0.5},
 }
 
-GEN_CONFIG = {
+GENERATION_CONFIG = {
     "is_check": {"tp": 0.8},
     "large_mat_adv": {"tp": 0.8},
     "mat_bal": None,
     "is_legal": {
         "choose_legal": {"legal_you": 0.5, "legal_opp": 0.1, "illegal": 0.4},
-        "piece_freq": {"p": 1, "n": 2, "b": 2, "r": 2, "q": 3, "k": 1},
+        "piece_freq": {"p": 1, "n": 3, "b": 3, "r": 3, "q": 5, "k": 3},
         "in_check": 0.1
     },
     "under_attack": {
@@ -92,9 +94,47 @@ GEN_CONFIG = {
     "best_move_le11": None,
     "best_move_le12": None,
     "predict_bestmove": None,
+    "multi_sample": None
 }
 
-TASK_CRITERIA_EXTRA = {
+# New technique -- can update 'args' to equal something different if I want to adjust args
+GENERATION_CONFIG['multi_sample'] = {
+    "generation_samples": (4, 6),
+    "tasks": {
+        "is_check": {
+            "frequency": 2,
+            "max_samples": 1,
+            "args": GENERATION_CONFIG['is_check']
+        },
+        "is_legal": {
+            "frequency": 5,
+            "max_samples": 3,
+            "args": GENERATION_CONFIG['is_legal']
+        },
+        "under_attack": {
+            "frequency": 5,
+            "max_samples": 2,
+            "args": GENERATION_CONFIG['under_attack']
+        },
+        "mat_adv_value": {
+            "frequency": 5,
+            "max_samples": 1,
+            "args": GENERATION_CONFIG['mat_adv_value']
+        },
+        "mobility": {
+            "frequency": 5,
+            "max_samples": 2,
+            "args": GENERATION_CONFIG['mobility']
+        },
+        "cloze_capture": {
+            "frequency": 5,
+            "max_samples": 2,
+            "args": GENERATION_CONFIG['cloze_capture']
+        }
+    }
+}
+
+TASK_SAMPLING_CRITERIA = {
     "is_check": {
         "is_check": {"n": 0.50, "w": 0.25, "b": 0.25},
         "is_check_gen": {"tp": 0.40, "fp": 0.10, "tn": 0.50},
@@ -136,9 +176,10 @@ TASK_CRITERIA_EXTRA = {
     "best_move_le11": {},
     "best_move_le12": {},
     "predict_bestmove": {},
+    "multi_sample": {},
 }
 
-BUCKET_COLUMNS = {
+PRINT_DISTRIBUTION_COLUMNS = {
     "is_check": ["movecount_bucket", "player_bucket", "is_check_bucket", "is_check_gen_bucket"],
     "large_mat_adv": ["movecount_bucket", "player_bucket", "large_mat_adv_gen_bucket"],
     "mat_bal": ["movecount_bucket", "player_bucket", "mat_bal_bucket"],
@@ -155,6 +196,7 @@ BUCKET_COLUMNS = {
     "best_move_le11": ["piece_count"],
     "best_move_le12": ["piece_count"],
     "predict_bestmove": ["movecount_bucket", "player_bucket"],
+    "multi_sample": ["movecount_bucket", "player_bucket"],
 }
 
 
@@ -168,8 +210,12 @@ def _parse_max_pieces(task: str) -> int | None:
 
 
 def generate(task, count, base_df):
+    # Start by filtering based on base_criteria (more efficient with our function)
+    base_df = SamplingManager(base_df, BASE_SAMPLING_CRITERIA).get_samples(len(base_df))
+    base_df.drop(columns=['movecount_bucket', 'player_bucket'])
+
     # ---------- build chats & auxiliary columns -----------------------
-    cfg = GEN_CONFIG.get(task)                 # .get() avoids KeyError
+    cfg = GENERATION_CONFIG.get(task)
     latents_df = latents_generator(task, base_df, cfg) if cfg else latents_generator(task, base_df)
 
     # ---------- OPTIONAL filter for "best_move_leN" -------------------
@@ -186,13 +232,10 @@ def generate(task, count, base_df):
         return latents_df.sample(n=count, random_state=0).reset_index(drop=True)
 
     # ---------- original path for legacy tasks ------------------------
-    sm   = SamplingManager(latents_df, BASE_CRITERIA)
-    crit = {**BASE_CRITERIA, **TASK_CRITERIA_EXTRA.get(task, {})}
-    out  = pd.DataFrame()
-    while len(out) < count:
-        out = pd.concat([out, sm.get_samples(count - len(out), criteria=crit)], ignore_index=True)
-    return out.iloc[:count]
-
+    sm   = SamplingManager(latents_df, BASE_SAMPLING_CRITERIA)
+    crit = {**BASE_SAMPLING_CRITERIA, **TASK_SAMPLING_CRITERIA.get(task, {})}
+    out  = sm.get_samples(count, criteria=crit)
+    return out
 
 
 def print_distributions(df, cols):
@@ -208,6 +251,6 @@ if __name__ == "__main__":
     for task, count in TASK_SIZES.items():
         print(f"\n=== {task} ===")
         samples = generate(task, count, df)
-        print_distributions(samples, BUCKET_COLUMNS[task])
+        print_distributions(samples, PRINT_DISTRIBUTION_COLUMNS[task])
         outpath = Path(f"latents_train/{TASK_TO_FN_MAP[task]}_{GENERATION_TYPE}-ntp_{count}.jsonl")
         samples[f"{task}_chat"].to_json(outpath, orient="records", lines=True)
