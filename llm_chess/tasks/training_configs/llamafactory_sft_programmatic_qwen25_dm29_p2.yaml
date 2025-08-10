@@ -1,5 +1,5 @@
 ### model
-model_name_or_path: app/llm_chess/base-model
+model_name_or_path: /app/llm_chess/llm_chess/base-model
 trust_remote_code: true
 
 ### method
