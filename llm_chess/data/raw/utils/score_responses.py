@@ -127,6 +127,14 @@ class ResponseEvaluator():
                     if predicted_answer in answer:
                         predicted_move_idx = next(i for i, (move, _) in enumerate(sorted_answers) if move == predicted_answer)
                         score = predicted_move_idx/len(sorted_answers)
+                        
+                        # Test if 'top answer'
+                        max_value = max(answer.values())
+                        pred_value = answer[predicted_answer]
+                        if abs(pred_value - max_value) <= 0.03:
+                            if "Count: Top Answer" not in self.results:
+                                self.results["Count: Top Answer"] = 0
+                            self.results["Count: Top Answer"] += 1
                     else:
                         raise IllegalMoveException("Predicted move is not in the legal moves.")
                     self.results["Count: Legal Generations"] += 1
@@ -154,7 +162,7 @@ class ResponseEvaluator():
         self.results['Avg. Score - Legal'] = average_score_legal
         self.results['Error Rate'] = error_rate
         
-        print(f"{'-'*50}\nResults for {self.filename}:")
+        print(f"{'-'*50}\nResults for {self.data_dir}:")
         for k, v in self.results.items():
             print(f"{k}: {v}")
         print(f"{'-'*50}\n")
