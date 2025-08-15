@@ -28,7 +28,9 @@ llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_under_attack_200k.jsonl
 llm_chess/data/cleaned/train_data/latentsft_train_contrastive_ntp_200k.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainXL_multisample_500k.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_866k_p1.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_predict_line_1mm_p2.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_predict_line_1mm_novalue.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_799k_value.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_866k_novalue.jsonl
 
 # Various runscripts to ignore
 runscripts/eval/
@@ -52,6 +54,7 @@ __pycache__/
 # Chess Engine Files
 llm_chess/data/programmatic_explanations/stockfish/
 llm_chess/data/programmatic_explanations/latents_train/
+llm_chess/data/programmatic_explanations/prog_data/
 llm_chess/data/programmatic_explanations/testing/
 
 # Big data files we'll keep local (for processing / etc.)

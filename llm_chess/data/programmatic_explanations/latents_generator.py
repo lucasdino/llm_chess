@@ -865,24 +865,36 @@ def _generate_multisample(df_row: pd.Series, cfg: Dict):
     return chat, info
 
 
-def _get_optimal_line(fen: str, line_plies: int = 5, search_depth: int = 14) -> str:
-    "Helper function for _generate_predict_line"
+def _get_optimal_line(fen: str, line_plies: int = 5, search_depth: int = 14,
+                      show_cp_delta: bool = True) -> str:
     board = chess.Board(fen)
-    info = _engine_analyse(board, chess.engine.Limit(depth=search_depth))
-
-    pv = info.get("pv")
+    info0 = _engine_analyse(board, chess.engine.Limit(depth=search_depth))
+    pv = (info0.get("pv") or [])[:line_plies]
     if not pv:
-        return ""
+        raise ProgrammaticGenerationError()
 
-    pv = pv[:line_plies]
-    uci_moves = [m.uci() for m in pv]
-
-    tmp = board.copy()
+    tmp = board.copy(stack=False)
     for m in pv:
         tmp.push(m)
-    is_mate = tmp.is_checkmate()
 
-    return " ".join(uci_moves) + (" mate" if is_mate else "")
+    # must give full plies unless mate ends it
+    if len(pv) < line_plies and not tmp.is_checkmate():
+        raise ProgrammaticGenerationError()
+
+    uci_str = " ".join(m.uci() for m in pv)
+    if tmp.is_checkmate():
+        return uci_str + " mate"
+
+    if not show_cp_delta:
+        return uci_str
+
+    try:
+        s0 = info0["score"].pov(board.turn).cp
+        s1 = _engine_analyse(tmp, chess.engine.Limit(depth=search_depth))["score"].pov(board.turn).cp
+        d = s1 - s0
+        return f"{uci_str} [Δ{'+' if d >= 0 else ''}{d}]"
+    except:
+        raise ProgrammaticGenerationError()
 
 
 def _generate_predict_line(df_row: pd.Series, cfg: Dict):
@@ -891,7 +903,7 @@ def _generate_predict_line(df_row: pd.Series, cfg: Dict):
     search_depth = cfg['search_depth'] 
     try:
         answer = _get_optimal_line(df_row['FEN'], line_plies=target, search_depth=search_depth)
-        question = f"What are the likely next {target} plies that would play out? List all moves in UCI notation (e.g., e4f6), separate moves with a space, and if there is a checkmate, please end your sequence with 'mate'."
+        question = f"What are the likely next {target} plies that would play out? List all moves in UCI notation (e.g., e4f6) separated by spaces. If a checkmate occurs, end with 'mate'. Otherwise, end with the change in centipawns in the format '[Δ+/-#]'."
         chat = {
             "chat": [
                 ["system", LATENTS_SYSPROMPT],
@@ -958,49 +970,42 @@ PREFILL_TASK_MAP = {
 # Main Prompt Generator
 # ==================================================
 def latents_generator(task: str, df: pd.DataFrame, config_args: Dict = None) -> pd.DataFrame:
-    """
-    Adds `{task}_chat` plus any columns returned in the `df_info` dict
-    (e.g. 'is_check_gen_cat') for every row in *df*.
-    Prefill functions in PREFILL_TASK_MAP run automatically.
-    """
     if task in PREFILL_TASK_MAP:
         df = PREFILL_TASK_MAP[task](df)
 
     chat_col = f"{task}_chat"
-    chat_data_list = []
-    info_buffers: Dict[str, list] = {}        # {info_key: [vals…]}
+    chat_data_list, keep_idx = [], []
+    info_buffers: Dict[str, list] = {}
     num_generation_errors = 0
 
     total_rows = len(df)
-    print_interval = max(1, total_rows // 10)  # 10 total prints
+    print_interval = max(1, total_rows // 10)
     start_time = time.time()
 
-    for i, (_, row) in enumerate(df.iterrows(), 1):
+    for i, (idx, row) in enumerate(df.iterrows(), 1):
         try:
             chat_data, df_info = TASK_MAP[task](row, config_args)
             chat_data_list.append(chat_data)
+            keep_idx.append(idx)
 
             if df_info:
                 for k, v in df_info.items():
                     info_buffers.setdefault(k, []).append(v)
+        except ProgrammaticGenerationError:
+            num_generation_errors += 1
         except Exception as e:
-            if isinstance(e, ProgrammaticGenerationError):
-                num_generation_errors += 1
-            else:
-                raise e
+            raise e
 
-        # progress printing
         if i % print_interval == 0 or i == total_rows:
             elapsed = time.time() - start_time
-            samples_per_s = i / elapsed
-            print(f"[{i}/{total_rows}] {samples_per_s:.2f} samples/s")
+            print(f"[{i}/{total_rows}] {i/elapsed:.2f} samples/s")
 
-    # attach new columns
+    # keep only successful rows
+    df = df.loc[keep_idx].reset_index(drop=True)
     df[chat_col] = chat_data_list
     for k, vals in info_buffers.items():
         df[k] = vals
 
     print(f"Total Number of generation errors: {num_generation_errors}")
     _shutdown_engine()
-
     return df

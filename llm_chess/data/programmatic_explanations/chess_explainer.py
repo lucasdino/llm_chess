@@ -23,15 +23,15 @@ class ChessExplainer:
     # Tunables – tweak for speed/quality trade‑off --------------------------
     ROOT_SAMPLING = {
         "min_k": 2,
-        "max_k": 5,
-        "min_p": 0.05,
-        "cum_p": 0.9,
-        "temp": 100
+        "max_k": 3,
+        "min_p": 0.00,
+        "cum_p": 1.0,
+        "temp": 500
     }
     
     TREE_PLAYER_SAMPLING = {
         "min_k": 1,
-        "max_k": 3,
+        "max_k": 2,
         "min_p": 0.2,
         "cum_p": 0.8,
         "temp": 20
@@ -45,8 +45,8 @@ class ChessExplainer:
         "temp": 10
     }
 
-    TREE_NODES_MAX = 12              # Hard cap to keep engine calls bounded
-    TREE_DEPTH_MAX = 3               # Plies *after* the root move
+    TREE_NODES_MAX = 10              # Hard cap to keep engine calls bounded
+    TREE_DEPTH_MAX = 2               # Plies *after* the root move
     
     INF = 10_000_000                 # Sentinel for minimax initialisation
     MATE_SCORE = 10_000              # Normalised mate value (≫ any cp score)

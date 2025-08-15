@@ -19,9 +19,18 @@ def generate_reasoning(
         root_entries: List[Dict[str, Any]],
         initial_score: int,
         append_move_delta: bool = True,
+        append_move_value_all_moves: bool = True,
+        bracket_value_type: str = "value",  # 'value' or 'minimax'
     ) -> List[Dict[str, Any]]:
         """ External-facing function to generate an explanation. Wraps around the MoveExplanation class """
-        explainer = MoveExplanation(initial_board, root_entries, initial_score, append_move_delta=append_move_delta)
+        explainer = MoveExplanation(
+            initial_board,
+            root_entries,
+            initial_score,
+            append_move_delta=append_move_delta,
+            append_move_value_all_moves=append_move_value_all_moves,
+            bracket_value_type=bracket_value_type,
+        )
         return explainer.generate_explanations()
 
 
@@ -92,12 +101,18 @@ class MoveExplanation:
         root_entries: List[Dict[str, Any]],
         initial_score: int,
         append_move_delta: bool = True,
+        append_move_value_all_moves: bool = False,
+        bracket_value_type: str = "value",
     ):
         self.initial_board = initial_board.copy()
         self.root_entries = root_entries
         self.initial_score = initial_score
         self.root_color = self.initial_board.turn
         self.append_move_delta = append_move_delta
+        # If True, append value brackets for every move (branches and leaves). If False, only at leaves.
+        self.append_move_value_all_moves = append_move_value_all_moves
+        # Choose label/value source for brackets: 'value' (node.score) or 'minimax' (node.minimax)
+        self.bracket_value_type = bracket_value_type if bracket_value_type in ("value", "minimax") else "value"
 
         # Extract valid VariationNode roots from the dictionaries
         self.roots: List[VariationNode] = []
@@ -218,7 +233,12 @@ class MoveExplanation:
             if random.random() < self.ROOT_WRITE_OFF_EPS:
                 return root_narration, False
             
-            root_narration.append(random.choice(phrase_banks['write_off_root_phrases']))
+            # Append minimax value to the write-off phrase (trim trailing period, add bracket + period)
+            writeoff_phrase = random.choice(phrase_banks['write_off_root_phrases'])
+            if writeoff_phrase and writeoff_phrase.endswith('.'):
+                writeoff_phrase = writeoff_phrase[:-1]
+            writeoff_phrase = f"{writeoff_phrase} [mm{root.minimax:+d}]."
+            root_narration.append(writeoff_phrase)
             return root_narration, True
         
         return root_narration, False
@@ -297,8 +317,9 @@ class MoveExplanation:
                     best_child = child
         
         # Will use this regardless of if leaf or branch node
-        move_description, _ = self._describe_move(board, best_child)
-        
+        # Force minimax bracket when verbalizing the best move summary
+        move_description, _ = self._describe_move(board, best_child, bracket_force_type="minimax")
+            
         # First case - this is a leaf node (assuming depth of leaf nodes all same - based on our build this should work)
         if len(best_child.children) == 0:        
             if our_move:
@@ -330,6 +351,7 @@ class MoveExplanation:
             board: chess.Board, 
             node: VariationNode, 
             depth_values: List[int] = None,
+            bracket_force_type: Optional[str] = None,  # override 'value'/'minimax' for this call
         ) -> Tuple[str, bool]:
         """ Function to, given a move, describe the move (and optionally narrate move value). """
         color = "white" if board.turn == chess.WHITE else "black"
@@ -339,7 +361,7 @@ class MoveExplanation:
         if board.is_castling(node.move):
             side = "kingside" if chess.square_file(node.move.to_square) == 6 else "queenside"
             move_description = f"{color} castles {side} ({node.move.uci()})"
-            move_description += self._format_delta_bracket(node, depth_values)
+            move_description += self._format_delta_bracket(node, depth_values, force_type=bracket_force_type)
             return move_description, None
 
         piece = board.piece_at(node.move.from_square)
@@ -371,7 +393,7 @@ class MoveExplanation:
             action += " putting the king in check"
         
         move_description = f"{color} {piece_name} {action} ({node.move.uci()})"
-        move_description += self._format_delta_bracket(node, depth_values)
+        move_description += self._format_delta_bracket(node, depth_values, force_type=bracket_force_type)
 
         # Narrate move value (if hyperparam set)
         value_narration = None
@@ -396,24 +418,45 @@ class MoveExplanation:
 
         return move_description, value_narration
 
-    def _format_delta_bracket(self, node: VariationNode, depth_values: Optional[List[int]]) -> str:
-        """Append a signed delta in brackets after the move description."""
+    def _format_delta_bracket(self, node: VariationNode, depth_values: Optional[List[int]], force_type: Optional[str] = None) -> str:
+        """Append a bracket with the raw centipawn score (signed), with label.
+
+        Behavior:
+        - If append_move_delta is False: never append.
+        - If append_move_value_all_moves is True: append on all moves that have a numeric value.
+        - Otherwise (default/back-compat): append only at leaf nodes.
+        - Label with 'v' for node.score or 'mm' for node.minimax. 'force_type' overrides global setting.
+        """
         if not self.append_move_delta:
             return ""
-        delta = None
-        # Prefer node.delta_score if available
-        if hasattr(node, "delta_score") and node.delta_score is not None:
-            try:
-                delta = int(node.delta_score)
-            except Exception:
-                delta = None
-        # Fallback: compute using parent score if provided
-        if delta is None and depth_values and len(depth_values) > 1 and getattr(node, 'score', None) is not None:
-            try:
-                delta = int(node.score - depth_values[-2])
-            except Exception:
-                delta = None
-        return f" [{delta:+d}]" if isinstance(delta, int) else ""
+
+        try:
+            # Show on all moves when enabled
+            if getattr(self, 'append_move_value_all_moves', False):
+                val_type = force_type if force_type in ("value", "minimax") else self.bracket_value_type
+                # Prefer chosen value; ensure it exists
+                if val_type == "minimax" and getattr(node, 'minimax', None) is not None:
+                    return f" [mm{int(node.minimax):+d}]"
+                if getattr(node, 'score', None) is not None:
+                    return f" [v{int(node.score):+d}]"
+                return ""
+
+            # Otherwise, only show at leaf nodes
+            if getattr(node, "children", None) and len(node.children) > 0:
+                return ""
+        except Exception:
+            # If children not accessible, fall through and try to show score if present
+            pass
+
+        try:
+            val_type = force_type if force_type in ("value", "minimax") else self.bracket_value_type
+            if val_type == "minimax" and getattr(node, 'minimax', None) is not None:
+                return f" [mm{int(node.minimax):+d}]"
+            if getattr(node, 'score', None) is not None:
+                return f" [v{int(node.score):+d}]"
+        except Exception:
+            pass
+        return ""
 
 
     def _narrate_board_value(self, root: VariationNode) -> str:
@@ -423,7 +466,8 @@ class MoveExplanation:
         if not self.NARRATE_BOARD_VALUE:
             return None
 
-        board_value = f"[{root.minimax}]" if self.SHOW_BOARD_VALUE else ""
+        # Always include signed centipawn score when narrating board value, labeled as minimax
+        board_value = f"[mm{root.minimax:+d}]"
         phrases = phrase_banks['board_valuation_phrases']
         node_score = root.minimax
 
@@ -478,7 +522,7 @@ class MoveExplanation:
         return output_text
 
 
-    def _generate_final_choice(self, nodes: List[VariationNode]) -> str:
+    def _generate_final_choice(self, nodes: List[VariationNode]) -> Tuple[str, str]:
         # First need to find our best move
         best_node = None
         max_val = -self.INF
@@ -488,8 +532,16 @@ class MoveExplanation:
                 best_node = node
 
         # Now generate our final analysis statement
+        # Build move description, but strip any trailing value/minimax bracket so only the final minimax is shown
         best_move, _ = self._describe_move(self.initial_board, best_node)
-        final_statement = random.choice(phrase_banks['final_statement_phrases']).format(best_move=best_move)
+        best_move = re.sub(r"\s*\[(?:mm|v)[+-]?\d+\]$", "", best_move)
+        phrase = random.choice(phrase_banks['final_statement_phrases'])
+        # Force minimax in the final statement bracket
+        board_value_bracket = f"[mm{best_node.minimax:+d}]"
+        # Allow phrase to include {board_value} if desired; otherwise append at end.
+        final_statement = phrase.format(best_move=best_move, board_value=board_value_bracket)
+        if '{board_value}' not in phrase:
+            final_statement = f"{final_statement} {board_value_bracket}"
         return final_statement, best_node.move.uci()        
 
 

@@ -14,7 +14,7 @@ def generate_data_sample(fen: str, explanations: List[str], final_statement: str
     Given a board (FEN notation), explanations, and a final evaluation, create a reasoning trace to train a model on.
     """
     sys_prompt = "chess_task_sysprompt.txt"
-    user_prompt = f"""Here is a board in a game you're currently playing. I want you to think through some possible moves you could make and how those moves will likely play out. You may find it helpful to roll-out each line assuming your opponent plays near-optimally. You may also find it helpful to consider the value of the final board state after each roll-out.\n\nAfter you think through your various moves, please end by telling me your chosen move (in UCI notation) within answer tags.\n\n{_convert_fen_to_visual(fen)}"""
+    user_prompt = f"""Here is a board in a game you're currently playing. I want you to think of possible moves you could play. If it seems like a good move, you should roll-out the line assuming optimal play from your opponent. For each move (you and opponent), predict the value of the board in the format: '[v+/-#]'. You should verbalize decisions when there are multiple branched moves using minimax logic -- list the minimax value as '[mm+/-#]'.\n\nAfter you think through your various moves, please end by telling me your chosen move (in UCI notation) within answer tags.\n\n{_convert_fen_to_visual(fen)}"""
 
     model_response = f"""{random.choice(initial_think_phrase)}
 <think> {_format_explanations(explanations, final_statement)} </think>
