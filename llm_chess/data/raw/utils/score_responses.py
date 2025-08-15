@@ -1,6 +1,5 @@
 import os
 import json
-import pandas as pd
 
 from .exceptions import IllegalMoveException, ParseException
 from .parsing import coerce_response, extract_solution, parse_fen
@@ -125,12 +124,20 @@ class ResponseEvaluator():
                     sorted_answers = sorted(answer.items(), key=lambda x: x[1])
 
                     if predicted_answer in answer:
-                        predicted_move_idx = next(i for i, (move, _) in enumerate(sorted_answers) if move == predicted_answer)
-                        score = predicted_move_idx/len(sorted_answers)
-                        
-                        # Test if 'top answer'
+                        # Handle ties: if multiple moves share the same score, map them to the same (highest) rank.
+                        predicted_value_for_rank = answer[predicted_answer]
+                        predicted_move_idx = max(i for i, (_, v) in enumerate(sorted_answers) if v == predicted_value_for_rank)
+                        # Normalize rank to [0,1] so worst=0 and best=1. Handle single-move edge case.
+                        n_moves = len(sorted_answers)
                         max_value = max(answer.values())
                         pred_value = answer[predicted_answer]
+                        if n_moves <= 1:
+                            score = 1.0
+                        else:
+                            # With ascending sort, higher index is better; map worst=0, best=1
+                            score = predicted_move_idx / (n_moves - 1)
+                        
+                        # Test if 'top answer'
                         if abs(pred_value - max_value) <= 0.03:
                             if "Count: Top Answer" not in self.results:
                                 self.results["Count: Top Answer"] = 0
@@ -156,10 +163,12 @@ class ResponseEvaluator():
         """ Return finalized dict and log to wandb. """
         average_score_all = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Total Generations'])
         average_score_legal = self._safe_div(self.results["Total: Cumulative Score"], self.results['Count: Legal Generations'])
-        total_errors = self.results['Error: Illegal Move'] + self.results['Error: Parsing'] + self.results['Error: Other'] 
+        legal_move_rate = self._safe_div(self.results['Count: Legal Generations'], self.results['Count: Total Generations'])
+        total_errors = self.results['Error: Illegal Move'] + self.results['Error: Parsing'] + self.results['Error: Other']
         error_rate = self._safe_div(total_errors, self.results['Count: Total Generations'])
         self.results['Avg. Score - All'] = average_score_all
         self.results['Avg. Score - Legal'] = average_score_legal
+        self.results['Legal Move Rate'] = legal_move_rate
         self.results['Error Rate'] = error_rate
         
         print(f"{'-'*50}\nResults for {self.data_dir}:")

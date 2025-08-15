@@ -13,6 +13,7 @@ local_testing/
 llm_chess/data/model_outputs/
 llm_chess/data/preprocessed_train_data/
 llm_chess/data/programmatic_explanations/data/
+llm_chess/paper/
 
 # Excessively large files
 llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p1.jsonl

@@ -17,10 +17,11 @@ from phrase_banks import phrase_banks
 def generate_reasoning(
         initial_board: chess.Board,
         root_entries: List[Dict[str, Any]],
-        initial_score: int
+        initial_score: int,
+        append_move_delta: bool = True,
     ) -> List[Dict[str, Any]]:
         """ External-facing function to generate an explanation. Wraps around the MoveExplanation class """
-        explainer = MoveExplanation(initial_board, root_entries, initial_score)
+        explainer = MoveExplanation(initial_board, root_entries, initial_score, append_move_delta=append_move_delta)
         return explainer.generate_explanations()
 
 
@@ -89,12 +90,14 @@ class MoveExplanation:
         self,
         initial_board: chess.Board,
         root_entries: List[Dict[str, Any]],
-        initial_score: int
+        initial_score: int,
+        append_move_delta: bool = True,
     ):
         self.initial_board = initial_board.copy()
         self.root_entries = root_entries
         self.initial_score = initial_score
         self.root_color = self.initial_board.turn
+        self.append_move_delta = append_move_delta
 
         # Extract valid VariationNode roots from the dictionaries
         self.roots: List[VariationNode] = []
@@ -335,7 +338,9 @@ class MoveExplanation:
         # Castling
         if board.is_castling(node.move):
             side = "kingside" if chess.square_file(node.move.to_square) == 6 else "queenside"
-            return f"{color} castles {side} ({node.move.uci()})", None
+            move_description = f"{color} castles {side} ({node.move.uci()})"
+            move_description += self._format_delta_bracket(node, depth_values)
+            return move_description, None
 
         piece = board.piece_at(node.move.from_square)
         piece_name = self.PIECE_NAMES.get(piece.piece_type, "piece")
@@ -366,6 +371,7 @@ class MoveExplanation:
             action += " putting the king in check"
         
         move_description = f"{color} {piece_name} {action} ({node.move.uci()})"
+        move_description += self._format_delta_bracket(node, depth_values)
 
         # Narrate move value (if hyperparam set)
         value_narration = None
@@ -389,6 +395,25 @@ class MoveExplanation:
             return move_description, value_narration
 
         return move_description, value_narration
+
+    def _format_delta_bracket(self, node: VariationNode, depth_values: Optional[List[int]]) -> str:
+        """Append a signed delta in brackets after the move description."""
+        if not self.append_move_delta:
+            return ""
+        delta = None
+        # Prefer node.delta_score if available
+        if hasattr(node, "delta_score") and node.delta_score is not None:
+            try:
+                delta = int(node.delta_score)
+            except Exception:
+                delta = None
+        # Fallback: compute using parent score if provided
+        if delta is None and depth_values and len(depth_values) > 1 and getattr(node, 'score', None) is not None:
+            try:
+                delta = int(node.score - depth_values[-2])
+            except Exception:
+                delta = None
+        return f" [{delta:+d}]" if isinstance(delta, int) else ""
 
 
     def _narrate_board_value(self, root: VariationNode) -> str:
