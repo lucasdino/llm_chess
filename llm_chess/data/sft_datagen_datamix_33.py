@@ -19,7 +19,7 @@ DATASET_CONFIG = [
     },
     {
         "name": "programmatic_chess_explainer",
-        "files": [""],
+        "files": ["vabp_values_10000.jsonl"],
         "weight": 0.25
     },
     # {
