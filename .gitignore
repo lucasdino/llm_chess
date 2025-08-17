@@ -31,6 +31,7 @@ llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_866k_p1.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_predict_line_1mm_novalue.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_799k_value.jsonl
 llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_866k_novalue.jsonl
+llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_predict_line_800k_value.jsonl
 
 # Various runscripts to ignore
 runscripts/eval/
