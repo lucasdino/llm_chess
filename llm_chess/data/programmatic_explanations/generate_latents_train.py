@@ -6,7 +6,7 @@ import pandas as pd
 from sampling_manager import SamplingManager
 from latents_generator import latents_generator
 
-GENERATION_TYPE = "trainBC"
+GENERATION_TYPE = "eval"
 
 DATA_FILES = {
     "trainXL": "data/trainxl_1mm.csv",
@@ -30,10 +30,10 @@ TASK_SIZES = {
     # "mobility": 200_000,
     # "contrastive_ntp": 20_000,
     # "cloze_capture": 200_000,
-    # "predict_bestmove": 5_000_000,
+    # "predict_bestmove": 20,
     # "best_move_le12": 50000,
-    # "multi_sample": 500_000,
-    "predict_line": 1_000_000,
+    # "multi_sample": 20,
+    # "predict_line": 20,
 }
 
 TASK_TO_FN_MAP = {

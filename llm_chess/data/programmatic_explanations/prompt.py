@@ -19,7 +19,7 @@ def generate_data_sample(fen: str, explanations: List[str], final_statement: str
     model_response = f"""{random.choice(initial_think_phrase)}
 <think> {_format_explanations(explanations, final_statement)} </think>
 
-<answer> {final_move_uci} </answer><|eot_id|>"""
+<answer> {final_move_uci} </answer>"""
 
     return sys_prompt, user_prompt, model_response
 

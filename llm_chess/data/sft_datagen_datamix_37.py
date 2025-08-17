@@ -43,7 +43,7 @@ DATASET_CONFIG = [
         "weight": 0.125
     },
     {
-        "name": "programmatic_bestmove",
+        "name": "programmatic_bestline",
         "files": ["latentsft_trainxl_predict_line_799k_value.jsonl", "latentsft_trainBC1mm_predict_line_800k_value.jsonl"],
         "weight": 0.5
     }
