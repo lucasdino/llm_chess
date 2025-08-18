@@ -58,7 +58,7 @@ def coerce_response(text: str, task_type: str, info: Dict = None, **kwargs) -> s
 
     elif task_type == "reasoning_quality":
         extracted = extract_solution(text)
-        return _coerce_int_score(extracted)
+        return _coerce_dict_int_score(extracted)
 
     else:
         raise ValueError(f"Unknown eval type: {task_type}")
@@ -81,14 +81,45 @@ def _coerce_string_list(items: list[str]) -> list[str]:
     
     return filtered
 
-def _coerce_int_score(extracted_text: str) -> Dict[str, int]:
+def _coerce_dict_int_score(items: str) -> Dict[str, int]:
+    allowed_keys = {
+        "Efficacy",
+        "Efficiency",
+        "Faithfulness",
+    }
+    # --- literal-eval --------------------------------------------------------
     try:
-        int_score = int(extracted_text)
-        if int_score < 1 or int_score > 10:
-            raise ParseException(f"Score must be between 1 and 10 [inclusive]. Score of {int_score} is invalid.")
-        return {"Sum: Reasoning Quality": int(extracted_text)}
-    except ValueError:
-        raise ParseException(f"Data provided in answer tags not an int: {extracted_text}")
+        parsed = ast.literal_eval(items)
+    except Exception as e:
+        raise ParseException(f"Failed to parse input as a dictionary: {e}")
+
+    if not isinstance(parsed, dict):
+        raise ParseException("Parsed input is not a dictionary.")
+    
+    # --- validate & coerce ---------------------------------------------------
+    errors, result = [], {}
+
+    for key, value in parsed.items():
+        # key check
+        if key not in allowed_keys:
+            errors.append(f"Invalid key: '{key}' (allowed: {sorted(allowed_keys)})")
+            continue  # still inspect value to collect all errors
+
+        try:
+            v = int(value)
+        except:
+            errors.append(f"Invalid value for key '{key}': {value}. Value must be an int.")
+            continue
+
+        if v < 1 or v > 10:
+            errors.append(f"Invalid value for key '{key}': {value}. Value must be between 1 and 10 [inclusive].")    
+        else:
+            result[key] = v
+
+    if errors:
+        raise ParseException("Errors in input:\n" + "\n".join(errors))
+
+    return result
 
 
 def _coerce_dict_bool(items: str) -> Dict[str, int]:

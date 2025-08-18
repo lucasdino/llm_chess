@@ -331,7 +331,7 @@ class ParserResultsDict():
         
         elif self.task_type == "reasoning_quality":
             for k, v in parsed_response.items():
-                self.results[k] += v
+                self.results[f"Sum: Reasoning {k}"] += v
 
     def get_final_dict(self):
         """ Return finalized dict and log to wandb. """
@@ -382,12 +382,19 @@ class ParserResultsDict():
                 })
         
         elif self.task_type == "reasoning_quality":
-            self.results['Avg. Reasoning Quality'] = self._safe_div(self.results['Sum: Reasoning Quality'], self.results['Total Responses Parsed'])
+            self.results['Avg. Reasoning Efficacy'] = self._safe_div(self.results['Sum: Reasoning Efficacy'], self.results['Total Responses Parsed'])
+            self.results['Avg. Reasoning Efficiency'] = self._safe_div(self.results['Sum: Reasoning Efficiency'], self.results['Total Responses Parsed'])
+            self.results['Avg. Reasoning Faithfulness'] = self._safe_div(self.results['Sum: Reasoning Faithfulness'], self.results['Total Responses Parsed'])
+            reasoning_score_all = self.results['Sum: Reasoning Efficacy'] + self.results['Sum: Reasoning Efficiency'] + self.results['Sum: Reasoning Faithfulness']
+            self.results['Avg. Reasoning All'] = self._safe_div(reasoning_score_all, self.results['Total Responses Parsed'])
             self.results['Percent Reprompts'] = self._safe_div(self.results['Error: Reprompt'], self.results['Total Responses Parsed'])
             
             if self.wandb_run:
                 self.wandb_run.log({
-                    f"Reasoning Quality / Avg. Reasoning Quality": self.results["Avg. Reasoning Quality"],
+                    f"Reasoning Quality / Avg. Reasoning Efficacy": self.results["Avg. Reasoning Efficacy"],
+                    f"Reasoning Quality / Avg. Reasoning Efficiency": self.results["Avg. Reasoning Efficiency"],
+                    f"Reasoning Quality / Avg. Reasoning Faithfulness": self.results["Avg. Reasoning Faithfulness"],
+                    f"Reasoning Quality / Avg. Reasoning All": self.results["Avg. Reasoning All"],
                     f"Reasoning Quality / Percent Reprompts": self.results["Percent Reprompts"],
                 })
 
@@ -427,7 +434,9 @@ class ParserResultsDict():
             return {
                 "Filename": self.filename,
                 "Total Responses Parsed": 0,
-                "Sum: Reasoning Quality": 0,
+                "Sum: Reasoning Efficacy": 0,
+                "Sum: Reasoning Efficiency": 0,
+                "Sum: Reasoning Faithfulness": 0,
                 "Error: Reprompt": 0,
                 "Error: Other": 0,
             }
