@@ -43,6 +43,7 @@ runscripts/sft/
 runscripts/verl/
 runscripts/multi_node/
 runscripts/reasoning_strats/
+runscripts/reasoning_quality/
 runscripts/hallucinations/
 runscripts/generate
 runscripts/test_difficulty

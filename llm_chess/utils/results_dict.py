@@ -328,6 +328,10 @@ class ParserResultsDict():
         elif self.task_type == "reasoning_strategy":
             for k, v in parsed_response.items():
                 self.results[f"Count: {k}"] += v
+        
+        elif self.task_type == "reasoning_quality":
+            for k, v in parsed_response.items():
+                self.results[k] += v
 
     def get_final_dict(self):
         """ Return finalized dict and log to wandb. """
@@ -376,6 +380,16 @@ class ParserResultsDict():
                     f"Reasoning Strategy / Percent Verification": self.results["Percent Verification"],
                     f"Reasoning Strategy / Percent Reprompts": self.results["Percent Reprompts"],
                 })
+        
+        elif self.task_type == "reasoning_quality":
+            self.results['Avg. Reasoning Quality'] = self._safe_div(self.results['Sum: Reasoning Quality'], self.results['Total Responses Parsed'])
+            self.results['Percent Reprompts'] = self._safe_div(self.results['Error: Reprompt'], self.results['Total Responses Parsed'])
+            
+            if self.wandb_run:
+                self.wandb_run.log({
+                    f"Reasoning Quality / Avg. Reasoning Quality": self.results["Avg. Reasoning Quality"],
+                    f"Reasoning Quality / Percent Reprompts": self.results["Percent Reprompts"],
+                })
 
         return self.results
 
@@ -406,6 +420,14 @@ class ParserResultsDict():
                 "Count: Self Correction": 0,
                 "Count: Subgoal Setting": 0,
                 "Count: Verification": 0,
+                "Error: Reprompt": 0,
+                "Error: Other": 0,
+            }
+        elif self.task_type == "reasoning_quality":
+            return {
+                "Filename": self.filename,
+                "Total Responses Parsed": 0,
+                "Sum: Reasoning Quality": 0,
                 "Error: Reprompt": 0,
                 "Error: Other": 0,
             }

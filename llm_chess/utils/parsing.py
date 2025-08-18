@@ -56,6 +56,10 @@ def coerce_response(text: str, task_type: str, info: Dict = None, **kwargs) -> s
         extracted = extract_solution(text)
         return _coerce_dict_bool(extracted)
 
+    elif task_type == "reasoning_quality":
+        extracted = extract_solution(text)
+        return _coerce_int_score(extracted)
+
     else:
         raise ValueError(f"Unknown eval type: {task_type}")
     
@@ -76,6 +80,16 @@ def _coerce_string_list(items: list[str]) -> list[str]:
         raise ParseException("No valid items found in input.")
     
     return filtered
+
+def _coerce_int_score(extracted_text: str) -> Dict[str, int]:
+    try:
+        int_score = int(extracted_text)
+        if int_score < 1 or int_score > 10:
+            raise ParseException(f"Score must be between 1 and 10 [inclusive]. Score of {int_score} is invalid.")
+        return {"Sum: Reasoning Quality": int(extracted_text)}
+    except ValueError:
+        raise ParseException(f"Data provided in answer tags not an int: {extracted_text}")
+
 
 def _coerce_dict_bool(items: str) -> Dict[str, int]:
     """

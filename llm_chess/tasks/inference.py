@@ -29,7 +29,8 @@ TASK_MAP = {
 
 RUNTYPE_SYSPROMPT_MAPPING = {
     'hallucination': 'hallucinations_sysprompt.txt', 
-    'reasoning_strategy': 'reasoning_strategies_sysprompt.txt'
+    'reasoning_strategy': 'reasoning_strategies_sysprompt.txt',
+    'reasoning_quality': 'reasoning_quality_sysprompt.txt',
 }
 
 
@@ -130,7 +131,7 @@ def main():
         generator.generate(client)
         print(f"Completed {args.run_type}.")
     # For cases where we want the LLM to parse existing responses to extract more nuanced info (e.g., hallucinations, reasoning methods used)
-    elif args.run_type in ['hallucination', 'reasoning_strategy']:
+    elif args.run_type in ['hallucination', 'reasoning_strategy', 'reasoning_quality']:
         llm_parser = utils.LLMParser(
             args = args,
             runtype_mapping = RUNTYPE_SYSPROMPT_MAPPING
