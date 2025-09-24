@@ -12,41 +12,29 @@ archive/
 local_testing/
 llm_chess/data/model_outputs/
 llm_chess/data/preprocessed_train_data/
-llm_chess/data/programmatic_explanations/data/
+llm_chess/data/raw/programmatic_explanations/data/
 llm_chess/paper/
 
 # Excessively large files
-llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p1.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p2.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC_bestmove_5mm_p3.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_cloze_capture_200k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_is_check_200k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_is_legal_200k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_mat_adv_value_200k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_mobility_200k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_under_attack_200k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_train_contrastive_ntp_200k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainXL_multisample_500k.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_866k_p1.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_predict_line_1mm_novalue.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_799k_value.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainxl_predict_line_866k_novalue.jsonl
-llm_chess/data/cleaned/train_data/latentsft_trainBC1mm_predict_line_800k_value.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC_bestmove_5mm_p1.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC_bestmove_5mm_p2.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC_bestmove_5mm_p3.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_cloze_capture_200k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_is_check_200k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_is_legal_200k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_mat_adv_value_200k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_mobility_200k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_under_attack_200k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_train_contrastive_ntp_200k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainXL_multisample_500k.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainxl_predict_line_866k_p1.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_predict_line_1mm_novalue.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainxl_predict_line_799k_value.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainxl_predict_line_866k_novalue.jsonl
+llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_predict_line_800k_value.jsonl
 
 # Various runscripts to ignore
-runscripts/eval/
-runscripts/eval_sft/
-runscripts/eval_verl/
-runscripts/eval_ntp/
-runscripts/rejsampling/
-runscripts/sft/
-runscripts/verl/
-runscripts/multi_node/
-runscripts/reasoning_strats/
-runscripts/reasoning_quality/
-runscripts/hallucinations/
-runscripts/generate
-runscripts/test_difficulty
+runscripts/chess/
 
 # Jupyter notebook specific files
 .virtual_documents/
@@ -54,10 +42,10 @@ runscripts/test_difficulty
 __pycache__/
 
 # Chess Engine Files
-llm_chess/data/programmatic_explanations/stockfish/
-llm_chess/data/programmatic_explanations/latents_train/
-llm_chess/data/programmatic_explanations/prog_data/
-llm_chess/data/programmatic_explanations/testing/
+llm_chess/data/raw/programmatic_explanations/stockfish/
+llm_chess/data/raw/programmatic_explanations/latents_train/
+llm_chess/data/raw/programmatic_explanations/prog_data/
+llm_chess/data/raw/programmatic_explanations/testing/
 
 # Big data files we'll keep local (for processing / etc.)
 llm_chess/data/raw/deepmind_data/deepmind_behavioral_cloning_train_10mm_p1.csv
