@@ -24,7 +24,7 @@ def coerce_response(text: str, task_type: str, info: Dict = None, **kwargs) -> s
         processed_text = text
 
     # Need output to be a single string (no list)
-    if task_type == 'choose_from_n' or task_type == 'predict_singlemove' or task_type == 'predict_in_list':
+    if task_type == 'choose_from_n' or task_type == 'predict_singlemove' or task_type == 'predict_in_list' or task_type == 'matepuzzle_predict_singlemove':
         if isinstance(processed_text, str):
             processed_text = _stringify_move(processed_text)
         elif isinstance(processed_text, list):

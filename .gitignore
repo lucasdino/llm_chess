@@ -49,6 +49,10 @@ llm_chess/data/raw/programmatic_explanations/testing/
 
 # Big data files we'll keep local (for processing / etc.)
 llm_chess/data/raw/deepmind_data/deepmind_behavioral_cloning_train_10mm_p1.csv
+llm_chess/data/raw/one_move_mate_puzzles/knights_and_rooks.csv
+llm_chess/data/raw/one_move_mate_puzzles/more_pieces_puzzles.csv
+llm_chess/data/raw/one_move_mate_puzzles/more_pieces_puzzles_20k.csv
+llm_chess/data/raw/one_move_mate_puzzles/same_color_puzzles.csv
 llm_chess/data/raw/magpie_data/
 llm_chess/data/raw/processed_data/
 llm_chess/data/raw/rej_sampling_outputs/

@@ -84,6 +84,17 @@ class ResultsDict():
                 else:
                     raise IllegalMoveException("Predicted move is not in the legal moves.")
         
+            elif self.task_type == 'matepuzzle_predict_singlemove':
+                answer = ground_truth
+                predicted_answer = coerce_response(extract_solution(model_response), self.task_type)
+                sorted_answers = sorted(answer.items(), key=lambda x: x[1])
+                
+                if predicted_answer in answer:
+                    self.results["Legal Moves Provided"] += 1
+                    self.results["Correct"] += answer[predicted_answer]
+                else:
+                    raise IllegalMoveException("Predicted move is not in the legal moves.")
+
             elif self.task_type == "ntp_playmove":
                 answer = ground_truth
                 predicted_answer = model_response   # Since just asking it to produce a move directly (no reasoning)
@@ -156,6 +167,19 @@ class ResultsDict():
                 self.wandb_run.log({
                     f"{run_type} - {self.trimmed_filename}/Percent Legal Moves Predicted": self.results["Percent Legal Moves Predicted"],
                     f"{run_type} - {self.trimmed_filename}/Ratio of Legal to Illegal Moves": self.results["Ratio of Legal to Illegal Moves"],
+                    f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
+                })
+
+        elif self.task_type == "matepuzzle_predict_singlemove":
+            legal = self.results["Legal Moves Provided"]
+            total = self.results["Total Samples"]
+            self.results["Accuracy"] = self._safe_div(self.results["Correct"], total)
+            self.results["Percent Legal Moves Provided"] = self._safe_div(legal, total)
+            self.results["Error Rate"] = self._safe_div(self.results['Error: Parsing'] + self.results['Error: Illegal Move'] + self.results['Error: Other'], total)
+            if self.wandb_run:
+                self.wandb_run.log({
+                    f"{run_type} - {self.trimmed_filename}/Accuracy": self.results["Accuracy"],
+                    f"{run_type} - {self.trimmed_filename}/Percent Legal Moves Provided": self.results["Percent Legal Moves Provided"],
                     f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
                 })
 
@@ -248,6 +272,16 @@ class ResultsDict():
                 "Predicted Ground Truth Legal Moves": 0,
                 "Illegal Moves": 0,
                 "Error: Parsing": 0,
+                "Error: Other": 0,
+            }
+        elif self.task_type == "matepuzzle_predict_singlemove":
+            return {
+                "Filename": self.filename,
+                "Total Samples": 0,
+                "Legal Moves Provided": 0,
+                "Correct": 0,
+                "Error: Parsing": 0,
+                "Error: Illegal Move": 0,
                 "Error: Other": 0,
             }
         elif self.task_type == "predict_singlemove":
