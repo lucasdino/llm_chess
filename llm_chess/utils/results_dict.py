@@ -85,53 +85,44 @@ class ResultsDict():
                     raise IllegalMoveException("Predicted move is not in the legal moves.")
         
             elif self.task_type == 'matepuzzle_predict_singlemove':
-                answer = ground_truth
+                answer = ground_truth['answer']
                 predicted_answer = coerce_response(extract_solution(model_response), self.task_type)
-                sorted_answers = sorted(answer.items(), key=lambda x: x[1])
                 
                 if predicted_answer in answer:
                     self.results["Legal Moves Provided"] += 1
-                    self.results["Correct"] += answer[predicted_answer]
+                    self.results["Correct"] += int(answer[predicted_answer])
                 else:
                     raise IllegalMoveException("Predicted move is not in the legal moves.")
 
-            elif self.task_type == "ntp_playmove":
-                answer = ground_truth
-                predicted_answer = model_response   # Since just asking it to produce a move directly (no reasoning)
-                sorted_answers = sorted(answer.items(), key=lambda x: x[1])
-
-                if predicted_answer in answer:
-                    self.results["Legal Moves Provided"] += 1
-                    predicted_move_idx = next(i for i, (move, _) in enumerate(sorted_answers) if move == predicted_answer)
-                    self.results["Cumulative Rank of Moves Provided"] += predicted_move_idx/len(sorted_answers)
-                else:
-                    raise IllegalMoveException("Predicted move is not in the legal moves.")
-
-            elif self.task_type == "ntp_yes_no":
+            elif self.task_type == "fba_predict_move":
                 answer = ground_truth['answer']
-                predicted_answer = model_response
-                if not predicted_answer in ["Yes", "No"]:
-                    raise IllegalMoveException("Output is not a 'Yes' or 'No'.")
-                self.results["Total Correct"] += predicted_answer == answer
+                predicted_answer = coerce_response(extract_solution(model_response), self.task_type)
+                self.results["Correct"] += predicted_answer == answer
 
-            elif self.task_type == "ntp_predict_num":
+            elif self.task_type == "fba_yes_no":
+                answer = ground_truth['answer'].lower()
+                predicted_answer = coerce_response(extract_solution(model_response), self.task_type).lower()
+                if not predicted_answer in ["yes", "no"]:
+                    raise IllegalMoveException("Output is not a 'Yes' or 'No'.")
+                self.results["Correct"] += predicted_answer == answer
+
+            elif self.task_type == "fba_predict_num":
                 try:
-                    num_pred_ans = float(model_response)
-                    num_ans = float(ground_truth['answer'])
-                    delta_percent = self._safe_div((num_pred_ans - num_ans), num_ans, default_div=100)
-                    self.results["Cumulative % Delta"] += delta_percent
-                    self.results["Total Legal"] += 1
-                    if math.isclose(num_pred_ans, num_ans):
-                        self.results["Total Correct"] += 1
+                    answer = float(ground_truth['answer'])
+                    predicted_answer = float(coerce_response(extract_solution(model_response), self.task_type))
+
+                    # Compute a magnitude-based scaled metric here
+                    min_scale = 200 if "matadvval" in self.filename else 2
+                    max_scale = 500 if "matadvval" in self.filename else 5
+                    denom = min(max(abs(answer), min_scale), max_scale)
+                    score = max(0.0, 1.0 - abs(answer - predicted_answer) / denom)
+
+                    self.results["Cumulative Score"] += score
+                    self.results["Legal Moves Provided"] += 1
+                    if math.isclose(predicted_answer, answer):
+                        self.results["Perfect"] += 1
                 except:
                     raise IllegalMoveException("Output is not able to be converted to an int.")
-                
-            elif self.task_type == "ntp_predict_move":
-                answer = ground_truth['answer']
-                predicted_answer = model_response
-                if not re.fullmatch(r"[a-h][1-8]", predicted_answer):
-                    raise IllegalMoveException("Output is not a correct square.")
-                self.results["Total Correct"] += predicted_answer == answer
 
         # Exception handling to log various errors     
         except Exception as e:
@@ -170,19 +161,6 @@ class ResultsDict():
                     f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
                 })
 
-        elif self.task_type == "matepuzzle_predict_singlemove":
-            legal = self.results["Legal Moves Provided"]
-            total = self.results["Total Samples"]
-            self.results["Accuracy"] = self._safe_div(self.results["Correct"], total)
-            self.results["Percent Legal Moves Provided"] = self._safe_div(legal, total)
-            self.results["Error Rate"] = self._safe_div(self.results['Error: Parsing'] + self.results['Error: Illegal Move'] + self.results['Error: Other'], total)
-            if self.wandb_run:
-                self.wandb_run.log({
-                    f"{run_type} - {self.trimmed_filename}/Accuracy": self.results["Accuracy"],
-                    f"{run_type} - {self.trimmed_filename}/Percent Legal Moves Provided": self.results["Percent Legal Moves Provided"],
-                    f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
-                })
-
         elif self.task_type == "predict_singlemove":
             legal = self.results["Legal Moves Provided"]
             total = self.results["Total Samples"]
@@ -196,56 +174,50 @@ class ResultsDict():
                     f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
                 })
 
-        elif self.task_type == "ntp_playmove":
+        elif self.task_type == "matepuzzle_predict_singlemove":
             legal = self.results["Legal Moves Provided"]
             total = self.results["Total Samples"]
-            self.results["Avg. Rank of Move Provided"] = self._safe_div(self.results["Cumulative Rank of Moves Provided"], legal)
+            self.results["Accuracy"] = self._safe_div(self.results["Correct"], total)
             self.results["Percent Legal Moves Provided"] = self._safe_div(legal, total)
             self.results["Error Rate"] = self._safe_div(self.results['Error: Parsing'] + self.results['Error: Illegal Move'] + self.results['Error: Other'], total)
             if self.wandb_run:
                 self.wandb_run.log({
-                    f"{run_type} - {self.trimmed_filename}/Avg. Rank of Move Provided": self.results["Avg. Rank of Move Provided"],
+                    f"{run_type} - {self.trimmed_filename}/Accuracy": self.results["Accuracy"],
                     f"{run_type} - {self.trimmed_filename}/Percent Legal Moves Provided": self.results["Percent Legal Moves Provided"],
                     f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
                 })
 
-        elif self.task_type == "ntp_yes_no":
-            correct_acc = self._safe_div(self.results["Total Correct"], self.results["Total Samples"])
-            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Other'] 
-            error_rate = self._safe_div(total_errors, self.results['Total Samples'])
-            self.results['% Correct'] = correct_acc
-            self.results['Error Rate'] = error_rate
+        elif self.task_type == "fba_predict_move":
+            total = self.results["Total Samples"]
+            self.results["% Correct"] = self._safe_div(self.results["Correct"], total)
+            self.results["Error Rate"] = self._safe_div(self.results['Error: Parsing'] + self.results['Error: Illegal Move'] + self.results['Error: Other'], total)
             if self.wandb_run:
                 self.wandb_run.log({
-                    f"{run_type} NTP - {self.trimmed_filename} / % Correct": self.results['% Correct'],
-                    f"{run_type} NTP - {self.trimmed_filename} / Error Rate": self.results['Error Rate'],
-                    })
+                    f"{run_type} - {self.trimmed_filename}/% Correct": self.results["% Correct"],
+                    f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
+                })
 
-        elif self.task_type == "ntp_predict_num":
-            acc_perfect = self._safe_div(self.results["Total Correct"], self.results["Total Samples"])
-            avg_delta_percent = self._safe_div(self.results["Cumulative % Delta"], self.results["Total Legal"])
-            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Other'] 
-            error_rate = self._safe_div(total_errors, self.results['Total Samples'])
-            self.results['% Perfect'] = acc_perfect
-            self.results['Avg. % Delta'] = avg_delta_percent
-            self.results['Error Rate'] = error_rate
+        elif self.task_type == "fba_yes_no":
+            total = self.results["Total Samples"]
+            self.results["% Correct"] = self._safe_div(self.results["Correct"], total)
+            self.results["Error Rate"] = self._safe_div(self.results['Error: Parsing'] + self.results['Error: Illegal Move'] + self.results['Error: Other'], total)
             if self.wandb_run:
                 self.wandb_run.log({
-                    f"{run_type} NTP - {self.trimmed_filename} / Avg. % Delta": self.results['Avg. % Delta'],
-                    f"{run_type} NTP - {self.trimmed_filename} / % Perfect": self.results['% Perfect'],
-                    f"{run_type} NTP - {self.trimmed_filename} / Error Rate": self.results['Error Rate'],
-                    })
+                    f"{run_type} - {self.trimmed_filename}/% Correct": self.results["% Correct"],
+                    f"{run_type} - {self.trimmed_filename}/Error Rate": self.results["Error Rate"]
+                })
 
-        elif self.task_type == "ntp_predict_move":
-            correct_acc = self._safe_div(self.results["Total Correct"], self.results["Total Samples"])
-            total_errors = self.results['Error: Illegal Move'] + self.results['Error: Other'] 
-            error_rate = self._safe_div(total_errors, self.results['Total Samples'])
-            self.results['% Correct'] = correct_acc
-            self.results['Error Rate'] = error_rate
+        elif self.task_type == "fba_predict_num":
+            total = self.results["Total Samples"]
+            legal = self.results["Legal Moves Provided"]
+            self.results['% Perfect'] = self._safe_div(self.results["Perfect"], total)
+            self.results["Avg. Score"] = self._safe_div(self.results["Cumulative Score"], legal)
+            self.results["Error Rate"] = self._safe_div(self.results['Error: Parsing'] + self.results['Error: Illegal Move'] + self.results['Error: Other'], total)
             if self.wandb_run:
                 self.wandb_run.log({
-                    f"{run_type} NTP - {self.trimmed_filename} / % Correct": self.results['% Correct'],
-                    f"{run_type} NTP - {self.trimmed_filename} / Error Rate": self.results['Error Rate'],
+                    f"{run_type} - {self.trimmed_filename}/% Perfect": self.results['% Perfect'],
+                    f"{run_type} - {self.trimmed_filename}/Avg. Score": self.results['Avg. Score'],
+                    f"{run_type} - {self.trimmed_filename}/Error Rate": self.results['Error Rate'],
                     })
 
         return self.results, self.correct_responses
@@ -274,16 +246,6 @@ class ResultsDict():
                 "Error: Parsing": 0,
                 "Error: Other": 0,
             }
-        elif self.task_type == "matepuzzle_predict_singlemove":
-            return {
-                "Filename": self.filename,
-                "Total Samples": 0,
-                "Legal Moves Provided": 0,
-                "Correct": 0,
-                "Error: Parsing": 0,
-                "Error: Illegal Move": 0,
-                "Error: Other": 0,
-            }
         elif self.task_type == "predict_singlemove":
             return {
                 "Filename": self.filename,
@@ -294,41 +256,44 @@ class ResultsDict():
                 "Error: Illegal Move": 0,
                 "Error: Other": 0,
             }
-        elif self.task_type == "ntp_playmove":
+        elif self.task_type == "matepuzzle_predict_singlemove":
             return {
                 "Filename": self.filename,
                 "Total Samples": 0,
                 "Legal Moves Provided": 0,
-                "Cumulative Rank of Moves Provided": 0,
+                "Correct": 0,
                 "Error: Parsing": 0,
                 "Error: Illegal Move": 0,
                 "Error: Other": 0,
             }
-        elif self.task_type == "ntp_yes_no":
+        elif self.task_type == "fba_predict_move":
             return {
                 "Filename": self.filename,
                 "Total Samples": 0,
-                "Total Correct": 0,
+                "Correct": 0,
+                "Error: Parsing": 0,
                 "Error: Illegal Move": 0,
-                "Error: Other": 0
+                "Error: Other": 0,
             }
-        elif self.task_type == "ntp_predict_num":
+        elif self.task_type == "fba_yes_no":
             return {
                 "Filename": self.filename,
                 "Total Samples": 0,
-                "Total Correct": 0,
-                "Total Legal": 0,
-                "Cumulative % Delta": 0,
+                "Correct": 0,
+                "Error: Parsing": 0,
                 "Error: Illegal Move": 0,
-                "Error: Other": 0
+                "Error: Other": 0,
             }
-        elif self.task_type == "ntp_predict_move":
+        elif self.task_type == "fba_predict_num":
             return {
                 "Filename": self.filename,
                 "Total Samples": 0,
-                "Total Correct": 0,
+                "Cumulative Score": 0,
+                "Legal Moves Provided": 0,
+                "Perfect": 0,
+                "Error: Parsing": 0,
                 "Error: Illegal Move": 0,
-                "Error: Other": 0
+                "Error: Other": 0,
             }
         else:
             raise ValueError(f"Undefined task type: {self.task_type}")

@@ -20,16 +20,16 @@ DATA_FILES = {
 
 # Desired sample sizes per task
 TASK_SIZES = {
-    # "is_check": 200_000,
+    # "is_check": 400,
     # "large_mat_adv": 256,
     # "mat_bal": 256,
-    # "is_legal": 500_000,
-    # "under_attack": 200_000,
-    # "mat_adv_value": 200_000,
+    "is_legal": 400,
+    "under_attack": 400,
+    "mat_adv_value": 400,
     # "win_prob": 256,
-    # "mobility": 200_000,
+    "mobility": 400,
     # "contrastive_ntp": 20_000,
-    # "cloze_capture": 200_000,
+    "cloze_capture": 400,
     # "predict_bestmove": 20,
     # "best_move_le12": 50000,
     # "multi_sample": 20,
@@ -260,5 +260,5 @@ if __name__ == "__main__":
         print(f"\n=== {task} ===")
         samples = generate(task, count, df)
         print_distributions(samples, PRINT_DISTRIBUTION_COLUMNS[task])
-        outpath = Path(f"latents_train/{TASK_TO_FN_MAP[task]}_{GENERATION_TYPE}-ntp_{count}.jsonl")
+        outpath = Path(f"latents_train/{TASK_TO_FN_MAP[task]}_{GENERATION_TYPE}-ntp_{len(samples)}.jsonl")
         samples[f"{task}_chat"].to_json(outpath, orient="records", lines=True)

@@ -24,7 +24,7 @@ def coerce_response(text: str, task_type: str, info: Dict = None, **kwargs) -> s
         processed_text = text
 
     # Need output to be a single string (no list)
-    if task_type == 'choose_from_n' or task_type == 'predict_singlemove' or task_type == 'predict_in_list' or task_type == 'matepuzzle_predict_singlemove':
+    if task_type == 'choose_from_n' or task_type == 'predict_singlemove' or task_type == 'predict_in_list' or task_type == 'matepuzzle_predict_singlemove' or task_type == 'fba_predict_move' or task_type == 'fba_yes_no':
         if isinstance(processed_text, str):
             processed_text = _stringify_move(processed_text)
         elif isinstance(processed_text, list):
@@ -35,6 +35,19 @@ def coerce_response(text: str, task_type: str, info: Dict = None, **kwargs) -> s
         else:
             raise ParseException("Output is not in the correct format.") 
     
+    elif task_type == 'fba_predict_num':
+        if isinstance(processed_text, int):
+            pass
+        elif isinstance(processed_text, float):
+            if processed_text.is_integer():
+                processed_text = int(processed_text)
+            else:
+                raise ParseException(
+                    "Float value must represent an integer (e.g., 10.0, not 10.5)."
+                )
+        else:
+            raise ParseException("Output is not a numeric value.")
+
     # Need to coerce to a list of strings
     elif task_type == 'produce_list':
         if isinstance(processed_text, list):

@@ -200,10 +200,16 @@ def _prefill_multisample(df):
 # Generator Helpers / Functions
 # ==================================================
 LATENTS_SYSPROMPT = "chess_generic.txt"
-LATENTS_USERPROMPT = (
+SFT_USERPROMPT = (
     "Here is a board in a game you're currently playing:\n{board}{add_info}\n\n"
     "Answer the following - if multiple questions, include a space between each answer:\n{question}"
 )
+ANSWERTAGS_USERPROMPT = (
+    "Here is a board in a game you're currently playing:\n{board}{add_info}\n\n"
+    "Your task is to answer the following question, putting your answer within answer tags. Your answer must be formatted as <answer> my_answer </answer>, where my_answer follows the format specified in the question.\n\nThink step by step if necessary, but do not omit the answer tags or deviate from the specified format. Only answers in the correct format will be accepted. The question is:\n{question}"
+)
+LATENTS_USERPROMPT = ANSWERTAGS_USERPROMPT   # Set this to flow through the entire file
+
 ADD_INFO_YN = "\n\nYou should respond with a single token -- 'Yes' or 'No' -- to the following."
 
 _piece_letter_map = {            # already in file but shown for clarity
@@ -611,7 +617,7 @@ def _generate_mobility(df_row: pd.Series, cfg: Dict, just_qa: bool = False):
 
     n_moves = sum(1 for mv in board.legal_moves if mv.from_square == square)
 
-    question = f"How many legal moves does your {_piece_word[piece_l]} at {sq_name} have (answer with an integer)?"
+    question = f"How many legal moves could your {_piece_word[piece_l]} at {sq_name} currently play (answer with an integer)?"
     answer   = str(n_moves)
 
     if just_qa:
@@ -997,7 +1003,7 @@ def latents_generator(task: str, df: pd.DataFrame, config_args: Dict = None) -> 
             raise e
 
         if i % print_interval == 0 or i == total_rows:
-            elapsed = time.time() - start_time
+            elapsed = max(time.time() - start_time, 0.01)
             print(f"[{i}/{total_rows}] {i/elapsed:.2f} samples/s")
 
     # keep only successful rows
