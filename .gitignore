@@ -9,6 +9,7 @@ build_verl_dataset.ps1
 
 # local dirs to ignore
 archive/
+rebuttals/
 local_testing/
 llm_chess/data/model_outputs/
 llm_chess/data/preprocessed_train_data/
