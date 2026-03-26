@@ -6,46 +6,51 @@ from llm_chess.data.raw.generation_util.sft_dataloaders import DatasetSource, lo
 
 # Main args to adjust
 MAX_SAMPLES = 750_000
-MAX_TOKENS  = 60_000_000
+MAX_TOKENS  = 4_000_000
 SAMPLING_STRATEGY = "tokens"                # "samples" | "tokens" | "get_token_stats"
 TOKENIZER_VERSION = "qwen25"
 OUTPUT_FOLDER = "llm_chess/data/"
-DATA_FOLDER = "llm_chess/data/cleaned/train_data"
+DATA_FOLDER = "llm_chess/data/cleaned/train_data/chess"
 DATASET_CONFIG = [
+    # {
+    #     "name": "mgp",
+    #     "files": ["magpieclean_20k.jsonl"],
+    #     "weight": 0.13333
+    # },
+    # {
+    #     "name": "vabp",
+    #     "files": ["vabp_values_10000.jsonl"],
+    #     "weight": 1.0
+    # },
+    # {
+    #     "name": "fba",
+    #     "files": ["latentsft_trainXL_multisample_500k.jsonl"],
+    #     "weight": 1.0
+    # },
+    # {
+    #     "name": "rejection_sampling_predictmove",
+    #     "files": ["rejsampling_predictmove_balanced_5775.jsonl"],
+    #     "weight": 0.5
+    # },
+    # {
+    #     "name": "rejection_sampling_other",
+    #     "files": ["rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
+    #     "weight": 0.5
+    # },
+    # {
+    #     "name": "synthetic_moves",
+    #     "files": ["syntheticmoves_blunders_11k.jsonl", "syntheticmoves_reasonablemove_oss120b_low_50k.jsonl"],
+    #     "weight": 1.0
+    # },
+    # {
+    #     "name": "programmatic_bestline",
+    #     "files": ["latentsft_trainxl_predict_line_799k_value.jsonl", "latentsft_trainBC1mm_predict_line_800k_value.jsonl"],
+    #     "weight": 1.0
+    # },
     {
-        "name": "mgp",
-        "files": ["magpieclean_20k.jsonl"],
-        "weight": 0.13333
-    },
-    {
-        "name": "vabp",
-        "files": ["vabp_values_10000.jsonl"],
-        "weight": 0.05833
-    },
-    {
-        "name": "fba",
-        "files": ["latentsft_trainXL_multisample_500k.jsonl"],
-        "weight": 0.06667
-    },
-    {
-        "name": "rejection_sampling_predictmove",
-        "files": ["rejsampling_predictmove_balanced_5775.jsonl"],
-        "weight": 0.05833
-    },
-    {
-        "name": "rejection_sampling_other",
-        "files": ["rejsampling_worstmove_balanced_1724.jsonl", "rejsampling_bestmove_balanced_2535.jsonl", "rejsampling_legalmoves_balanced_604.jsonl"],
-        "weight": 0.05833
-    },
-    {
-        "name": "synthetic_moves",
-        "files": ["syntheticmoves_blunders_11k.jsonl", "syntheticmoves_reasonablemove_oss120b_low_50k.jsonl"],
-        "weight": 0.125
-    },
-    {
-        "name": "programmatic_bestline",
-        "files": ["latentsft_trainxl_predict_line_799k_value.jsonl", "latentsft_trainBC1mm_predict_line_800k_value.jsonl"],
-        "weight": 0.5
+        "name": "programmatic_bestmove",
+        "files": ["latentsft_trainBC_bestmove_5mm_p1.jsonl"],
+        "weight": 1.0
     }
 ]
 
