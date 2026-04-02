@@ -34,6 +34,10 @@ llm_chess/data/cleaned/train_data/chess/latentsft_trainxl_predict_line_799k_valu
 llm_chess/data/cleaned/train_data/chess/latentsft_trainxl_predict_line_866k_novalue.jsonl
 llm_chess/data/cleaned/train_data/chess/latentsft_trainBC1mm_predict_line_800k_value.jsonl
 
+llm_chess/data/infodensity/
+llm_chess/data/cleaned/train_data/hf_upload
+
+
 # Various runscripts to ignore
 runscripts/chess/
 
