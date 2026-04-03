@@ -54,13 +54,13 @@ We split `Rejection Sampling` into each of our four subtasks below. See paper fo
 - `Legal Moves`: Given board state and piece, produce a list of all legal moves that piece could make. Scored via intersection over union, only those exceeding a threshold are kept.
 
 **Rejection Sampling: General Information**
-| Dataset       | Num Samples | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
-|---------------|------------:|---------------------------:|--------------:|
-| Predict Move  | 5,753       | 680.3 (150.4)              | 1194          |
-| Best Move     | 2,526       | 739.3 (142.0)              | 1200          |
-| Worst Move    | 1,612       | 794.5 (173.2)              | 1196          |
-| Legal Moves   | 592         | 652.2 (213.9)              | 1197          |
-| **Total**     | **10,483**  | **710.5 (162.6)**          | **1200**      |
+| Dataset       | Num Samples | Num Tokens | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
+|---------------|------------:|-----------:|---------------------------:|--------------:|
+| Predict Move  | 5,753       | 3,913,637  | 680.3 (150.4)              | 1194          |
+| Best Move     | 2,526       | 1,867,564  | 739.3 (142.0)              | 1200          |
+| Worst Move    | 1,612       | 1,280,679  | 794.5 (173.2)              | 1196          |
+| Legal Moves   | 592         | 386,126    | 652.2 (213.9)              | 1197          |
+| **Total**     | **10,483**  | **7,448,006** | **710.5 (162.6)**       | **1200**      |
 
 **Rejection Sampling: Piece Information (Generated Move / Candidate Move)**
 | Dataset       | % White | % Black | King  | Queen | Rook | Bishop | Knight | Pawn |
@@ -99,9 +99,9 @@ We split `Rejection Sampling` into each of our four subtasks below. See paper fo
 
 ## Verbalized Alpha-Beta Pruning (VABP)
 **Verbalized Alpha-Beta Pruning: General Information**
-| Dataset              | Num Samples | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
-|----------------------|------------:|---------------------------:|--------------:|
-| VABP                 | 10,000      | 417.3 (117.4)              | 901           |
+| Dataset              | Num Samples | Num Tokens | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
+|----------------------|------------:|-----------:|---------------------------:|--------------:|
+| VABP                 | 10,000      | 4,173,183  | 417.3 (117.4)              | 901           |
 
 **Verbalized Alpha-Beta Pruning: Piece Information (Final Answer Move)**
 | Dataset              | % White | % Black | King  | Queen | Rook | Bishop | Knight | Pawn |
@@ -126,11 +126,11 @@ We split `Rejection Sampling` into each of our four subtasks below. See paper fo
 ## Guided Synthetic
 *Note: `Blunders` was generated primarily using Llama 4 Maverick; `Reasonable Moves` was generated using `gpt-oss-120b` (low).*
 **Guided Synthetic: General Information**
-| Dataset           | Num Samples | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
-|-------------------|------------:|---------------------------:|--------------:|
-| Blunders          | 11,000      | 54.8 (17.9)                | 394           |
-| Reasonable Moves  | 49,071      | 142.4 (30.8)               | 393           |
-| **Total**         | **60,071**  | **126.4 (44.5)**           | **394**       |
+| Dataset           | Num Samples | Num Tokens | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
+|-------------------|------------:|-----------:|---------------------------:|--------------:|
+| Blunders          | 11,000      | 602,661    | 54.8 (17.9)                | 394           |
+| Reasonable Moves  | 49,071      | 6,987,677  | 142.4 (30.8)               | 393           |
+| **Total**         | **60,071**  | **7,590,338** | **126.4 (44.5)**        | **394**       |
 
 **Guided Synthetic: Piece Information (Candidate Move)**
 | Dataset           | % White | % Black | King  | Queen | Rook | Bishop | Knight | Pawn |
@@ -158,44 +158,44 @@ We split `Rejection Sampling` into each of our four subtasks below. See paper fo
 
 ## Factual Board Answering (FBA)
 **Factual Board Answering: General Information**
-| Dataset         | Num Samples | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. | Mean Questions / Sample (Std. Dev.) |
-|-----------------|------------:|---------------------------:|--------------:|------------------------------------:|
-| Multi-Question  | 500,000     | 8.4 (2.0)                  | 16            | 5.0 (0.8)                           |
+| Dataset         | Num Samples | Num Tokens | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. | Mean Questions / Sample (Std. Dev.) |
+|-----------------|------------:|-----------:|---------------------------:|--------------:|------------------------------------:|
+| FBA Multi-Question  | 500,000     | 4,175,854  | 8.4 (2.0)                  | 16            | 5.0 (0.8)                           |
 
 **Factual Board Answering: Distribution by Full Move Count (i.e., Game Stage)**
 | Dataset         | 0-9   | 10-19 | 20-29 | 30-39 | 40+   |
 |-----------------|------:|------:|------:|------:|------:|
-| Multi-Question  | 15.0% | 30.0% | 25.0% | 20.0% | 10.0% |
+| FBA Multi-Question  | 15.0% | 30.0% | 25.0% | 20.0% | 10.0% |
 
-**Factual Board Answering: Question Type Mix**
+**Factual Board Answering: Count of Question Type**
 | Dataset         | Is Check | Is Legal | Under Attack | Material Adv. Value | Mobility | Cloze Capture |
 |-----------------|---------:|---------:|-------------:|--------------------:|---------:|--------------:|
-| Multi-Question  | 207,498 (8.3%) | 569,352 (22.8%) | 518,484 (20.7%) | 366,533 (14.7%) | 505,775 (20.2%) | 332,146 (13.3%) |
+| FBA Multi-Question  | 207,498 (8.3%) | 569,352 (22.8%) | 518,484 (20.7%) | 366,533 (14.7%) | 505,775 (20.2%) | 332,146 (13.3%) |
 
 **Factual Board Answering: Is Check**
-| Dataset         | Yes  | No    |
+| Question Type         | Yes  | No    |
 |-----------------|-----:|------:|
-| Multi-Question  | 1.1% | 98.9% |
+| Is Check  | 1.1% | 98.9% |
 
 **Factual Board Answering: Is Legal**
-| Dataset         | Yes   | No    |
+| Question Type         | Yes   | No    |
 |-----------------|------:|------:|
-| Multi-Question  | 50.1% | 49.9% |
+| Is Legal  | 50.1% | 49.9% |
 
 **Factual Board Answering: Under Attack**
-| Dataset         | Yes   | No    |
+| Question Type         | Yes   | No    |
 |-----------------|------:|------:|
-| Multi-Question  | 33.9% | 66.1% |
+| Under Attack  | 33.9% | 66.1% |
 
 **Factual Board Answering: Material Advantage Value**
-| Dataset         | <-100 | -100-0 | 0-100 | 100+  |
+| Question Type         | <-100 | -100-0 | 0-100 | 100+  |
 |-----------------|------:|-------:|------:|------:|
-| Multi-Question  | 25.2% | 13.0%  | 36.7% | 25.1% |
+| Material Advantage Value  | 25.2% | 13.0%  | 36.7% | 25.1% |
 
 **Factual Board Answering: Mobility**
-| Dataset         | 0-1   | 2-3   | 4-5   | 6+    |
+| Question Type         | 0-1   | 2-3   | 4-5   | 6+    |
 |-----------------|------:|------:|------:|------:|
-| Multi-Question  | 16.0% | 20.2% | 17.1% | 46.6% |
+| Mobility  | 16.0% | 20.2% | 17.1% | 46.6% |
 
 *Note: Cloze-capture target squares span all 64 board squares, ranging from `g1` (1,081; 0.3%) to `f6` (14,857; 4.5%). The square-frequency distribution roughly resembles a 2D Gaussian over the board: hottest near the center and dissipating toward the edges. Token counts per Qwen2.5 tokenizer.*
 
@@ -208,9 +208,9 @@ We split `Rejection Sampling` into each of our four subtasks below. See paper fo
 
 ## Best Move
 **Best Move: General Information**
-| Dataset    | Num Samples | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
-|------------|------------:|---------------------------:|--------------:|
-| Best Move  | 14,848,802  | 4.0 (0.0)                  | 5             |
+| Dataset    | Num Samples | Num Tokens | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
+|------------|------------:|-----------:|---------------------------:|--------------:|
+| Best Move  | 14,848,802  | 59,424,394 | 4.0 (0.0)                  | 5             |
 
 **Best Move: Piece Information (Generated Move)**
 | Dataset    | % White | % Black | King  | Queen | Rook | Bishop | Knight | Pawn |
@@ -234,9 +234,9 @@ We split `Rejection Sampling` into each of our four subtasks below. See paper fo
 
 ## Best Line
 **Best Line: General Information**
-| Dataset    | Num Samples | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
-|------------|------------:|---------------------------:|--------------:|
-| Best Line  | 1,604,684   | 25.7 (3.6)                 | 34            |
+| Dataset    | Num Samples | Num Tokens | Mean Tok. Len. (Std. Dev.) | Max Tok. Len. |
+|------------|------------:|-----------:|---------------------------:|--------------:|
+| Best Line  | 1,604,684   | 41,175,357 | 25.7 (3.6)                 | 34            |
 
 **Best Line: Piece Information (First Move)**
 | Dataset    | % White | % Black | King  | Queen | Rook | Bishop | Knight | Pawn |
