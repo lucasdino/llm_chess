@@ -17,7 +17,7 @@ cutoff_len: 1800
 overwrite_cache: true
 
 ### output
-output_dir: eval_logits/q25_05b_infodensity_rs
+output_dir: eval_logits/q25_05b_infodensity_rs_v2
 logging_steps: 10
 save_strategy: "no"
 skip_final_model_save: true
@@ -36,7 +36,7 @@ ddp_timeout: 180000000
 ### reporting
 report_to: wandb
 group_name: rs
-run_name: q25_05b_infodensity_rs
+run_name: q25_05b_infodensity_rs_v2
 
 ### eval
 do_eval: true
