@@ -13,7 +13,7 @@ push_to_hub: false
 dataset: llmchess_programmatic
 dataset_dir: data/train_data/infodensity_fba
 template: default
-cutoff_len: 324
+cutoff_len: 512
 overwrite_cache: true
 
 ### output

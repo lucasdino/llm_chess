@@ -13,7 +13,7 @@ push_to_hub: false
 dataset: llmchess_programmatic
 dataset_dir: data/train_data/infodensity_gs
 template: default
-cutoff_len: 500
+cutoff_len: 750
 overwrite_cache: true
 
 ### output

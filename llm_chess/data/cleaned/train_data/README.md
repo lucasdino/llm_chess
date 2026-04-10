@@ -18,7 +18,7 @@ tags:
 *TLDR: We took care to balance the data across several axes; those distributions are summarized below.*
 
 ## Dataset Overviews
-We recommend referring to our paper "Reasoning Through Chess: How Reasoning Evolves from Data Through Fine-Tuning and Reinforcement Learning" ([Link](https://lucasdino.github.io/assets/files/llm_chess_neurips_forlm_2025.pdf)) for more information on each dataset (Appendix C explains each dataset and has samples). However, below is a quick overview of each data type included below:
+We recommend referring to our paper "Reasoning Through Chess: How Reasoning Evolves from Data Through Fine-Tuning and Reinforcement Learning" ([Link](https://arxiv.org/abs/2604.05134)) for more information on each dataset (Appendix C explains each dataset and has samples). However, below is a quick overview of each data type included below:
 | Dataset | Num Samples | Num Tokens | Mean Tok. Len. (Std. Dev.) | Summary |
 | --- | ---: | ---: | ---: | --- |
 | `Rejection Sampling` | 10,483 | 7,448,006 | 710.5 (162.6) | Responses from Llama 4 Maverick that were correct / exceeding a threshold across four evaluation tasks. |
@@ -35,11 +35,11 @@ All exported parquet datasets include these base columns. We specify any task-sp
 
 | Column | Meaning |
 | --- | --- |
-| `general_instruction` | Resolved system prompt text from `prompt_mapping.json`. |
-| `question` | User prompt shown to the model. |
-| `response` | Assistant response from the source dataset. |
-| `fen_board` | Parsed FEN board state when available. |
-| `fullmove_count` | Fullmove number parsed from the final field of `fen_board`. |
+| `general_instruction` | Gives general instruction for this task. |
+| `question` | Specific question asked -- includes ASCII board and other necessary information. |
+| `response` | Assistant response -- to be trained on. |
+| `fen_board` | Board state in Forsyth-Edwards Notation (FEN). |
+| `fullmove_count` | Fullmove number parsed from `fen_board`. |
 | `data_type` | High-level dataset family, such as `Guided Synthetic` or `Rejection Sampling`. |
 | `data_subtype` | Task subtype within the family, such as `Good Moves`, `Best Move`, or `Legal Moves`. |
 
